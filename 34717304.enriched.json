@@ -1,0 +1,80 @@
+{
+  "test_case_id": "34717304",
+  "generated_at": "2025-09-23T02:09:00Z",
+  "model_deployment": "gpt-4.1",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Apply to all devices.",
+      "expected": "",
+      "action_script": "# No action required; \"Apply to all devices\" is not a direct PowerShell action."
+    },
+    {
+      "step": 2,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates,cmdextension.msi locates in C:\\VMShare",
+      "expected": "",
+      "action_script": "Start-Process explorer.exe \"C:\\VMShare\""
+    },
+    {
+      "step": 3,
+      "action": "In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+      "expected": "",
+      "action_script": "Start-Process powershell -Verb RunAs"
+    },
+    {
+      "step": 4,
+      "action": "Run command: msiexec /i cmdextension.msi /qn+",
+      "expected": "The prompt window should pop up: Title is “Microsoft Cloud Manage Desktop Extension”, and Message is “Microsoft Cloud Managed Desktop Extension Setup completed successfully.”\n\nIf the step failed, run: msiexec /i cmdextension.msi /qn+ /l*v mylog. Send mylog to CMD Agent team for troubleshooting",
+      "action_script": "Start-Process -FilePath \"msiexec.exe\" -ArgumentList \"/i cmdextension.msi /qn+\" -Wait",
+      "verify_script": "Add-Type -AssemblyName PresentationFramework\n$windows = [System.Windows.Application]::Current.Windows\n$found = $false\nforeach ($w in $windows) {\n    if ($w.Title -eq 'Microsoft Cloud Manage Desktop Extension') {\n        if ($w.Content -match 'Microsoft Cloud Managed Desktop Extension Setup completed successfully.') {\n            $found = $true\n            break\n        }\n    }\n}\nif ($found) { exit 0 } else { throw 'MANUAL_CHECK' }"
+    },
+    {
+      "step": 5,
+      "action": "Open “Control Panel -> Programs -> Uninstall a program”",
+      "expected": "Verify “Microsoft Cloud Managed Desktop Extension” is present in the list of installed programs.",
+      "action_script": "Start-Process \"appwiz.cpl\"",
+      "verify_script": "$programs = Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Select-Object -ExpandProperty DisplayName\nif ($programs -contains 'Microsoft Cloud Managed Desktop Extension') { exit 0 } else { exit 1 }"
+    },
+    {
+      "step": 6,
+      "action": "Open “Task Manager -> Services”",
+      "expected": "Verify “CloudManagedDesktopExtension”\nis in running state.",
+      "action_script": "Start-Process taskmgr.exe\nStart-Sleep -Seconds 2\n$wshell = New-Object -ComObject wscript.shell\n$wshell.SendKeys(\"^{TAB}\")\n$wshell.SendKeys(\"^{TAB}\")\n$wshell.SendKeys(\"^{TAB}\")\n$wshell.SendKeys(\"^{TAB}\")\n$wshell.SendKeys(\"^{TAB}\")\n$wshell.SendKeys(\"^{TAB}\")",
+      "verify_script": "$service = Get-Service -Name 'CloudManagedDesktopExtension' -ErrorAction SilentlyContinue\nif ($null -eq $service -or $service.Status -ne 'Running') { exit 1 } else { exit 0 }"
+    },
+    {
+      "step": 7,
+      "action": "Press “Win + R” keys, type “services.msc” and press Enter.",
+      "expected": "Verify “Microsoft Cloud Managed Desktop Extension” - Status is “Running”, Startup Type is “Automatic (Delayed Start)”, and Log On As is “Local System”.",
+      "action_script": "Start-Process services.msc",
+      "verify_script": "$svc = Get-WmiObject -Class Win32_Service -Filter \"Name='CloudManagedDesktopExtension'\"\nif ($null -eq $svc) { exit 1 }\nif ($svc.State -ne 'Running') { exit 1 }\nif ($svc.StartMode -ne 'Delayed Auto') { exit 1 }\nif ($svc.StartName -ne 'LocalSystem') { exit 1 }\nexit 0"
+    },
+    {
+      "step": 8,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs.",
+      "expected": "Verify “CMDExtension.log” is present.",
+      "action_script": "Start-Process explorer.exe \"$env:ProgramData\\Microsoft\\CMDExtension\\Logs\"",
+      "verify_script": "if (Test-Path \"$env:ProgramData\\Microsoft\\CMDExtension\\Logs\\CMDExtension.log\") { exit 0 } else { exit 1 }"
+    },
+    {
+      "step": 9,
+      "action": "Press “Win + R” keys, type “taskschd.msc” and press Enter. Open “Task scheduler library -> Microsoft -> CMD”",
+      "expected": "Verify “Cloud Managed Desktop Extension Health Evaluation” is present.",
+      "action_script": "Start-Process taskschd.msc",
+      "verify_script": "$taskPath = \"\\Microsoft\\CMD\\\"\n$taskName = \"Cloud Managed Desktop Extension Health Evaluation\"\n$tasks = Get-ScheduledTask -TaskPath $taskPath | Select-Object -ExpandProperty TaskName\nif ($tasks -contains $taskName) { exit 0 } else { exit 1 }"
+    },
+    {
+      "step": 10,
+      "action": "Press “Win + R” keys, type “wbemtest” and press Enter. Click on “Connect”, type “root\\cmd\\clientagent” and press Enter.",
+      "expected": "Verify there is NOT error prompt window which displays “Invalid namespace”.",
+      "action_script": "Start-Process \"wbemtest\"\nStart-Sleep -Seconds 2\nAdd-Type -AssemblyName System.Windows.Forms\n[System.Windows.Forms.SendKeys]::SendWait(\"%{C}\")\nStart-Sleep -Seconds 1\n[System.Windows.Forms.SendKeys]::SendWait(\"root\\cmd\\clientagent\")\n[System.Windows.Forms.SendKeys]::SendWait(\"{ENTER}\")",
+      "verify_script": "Get-Process | Where-Object { $_.MainWindowTitle -like '*Invalid namespace*' } | ForEach-Object { exit 1 }; exit 0"
+    },
+    {
+      "step": 11,
+      "action": "Test Cleanup:\n\n\nIn the same PowerShell window as “Step 3”, run command: msiexec /x cmdextension.msi",
+      "expected": "",
+      "action_script": "Start-Process msiexec -ArgumentList '/x cmdextension.msi' -Wait"
+    }
+  ]
+}

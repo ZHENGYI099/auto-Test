@@ -1,0 +1,20 @@
+# Ignore environment files
+.env
+.env.*
+!.env.example
+
+# Python typical
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+*.log
+*.db
+
+# Virtual env
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
