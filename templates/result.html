@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('result_prefix') }}: {{ data.test_case_id }}{% endblock %}
+{% block content %}
+  <div class="card">
+    <h1>{{ t('result_prefix') }} - {{ data.test_case_id }} <span class="badge">{{ data.steps|length }} {{ t('steps_badge') }}</span></h1>
+    <div class="actions" style="margin-top:.4rem">
+      <a class="primary" style="text-decoration:none;display:inline-block" href="{{ url_for('download', name=download_name) }}">⬇ {{ t('download_json') }}</a>
+      <a class="primary" style="background:#6b7280;text-decoration:none;display:inline-block" href="{{ url_for('index') }}">＋ {{ t('convert_another') }}</a>
+      <button class="toggle-json" id="toggleJsonBtn">{{ t('collapse_expand_json') }}</button>
+    </div>
+    <div class="code-block" id="jsonBlock" style="margin-top:1rem">
+      <button class="copy-btn" data-target="jsonPre" data-copied="{{ t('copied') }}">{{ t('copy') }}</button>
+      <pre id="jsonPre">{{ data|tojson(indent=2, ensure_ascii=False) }}</pre>
+    </div>
+    <h2 style="font-size:1rem;margin-top:1.4rem">{{ t('steps_detail') }}</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th style="width:40%">Action</th><th>Expected</th></tr></thead>
+        <tbody>
+          {% for s in data.steps %}
+          <tr>
+            <td>{{ s.step }}</td>
+            <td><code>{{ s.action }}</code></td>
+            <td><code>{{ s.expected }}</code></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <script>
+    const toggleBtn = document.getElementById('toggleJsonBtn');
+    const jsonBlock = document.getElementById('jsonBlock');
+    toggleBtn.addEventListener('click',()=>{
+      if(jsonBlock.style.display==='none'){jsonBlock.style.display='block';}
+      else{jsonBlock.style.display='none';}
+    });
+    document.querySelectorAll('.copy-btn').forEach(btn=>{
+      const original = btn.textContent;
+      const copiedLabel = btn.getAttribute('data-copied')||'Copied';
+      btn.addEventListener('click',()=>{const id=btn.getAttribute('data-target');const el=document.getElementById(id);navigator.clipboard.writeText(el.textContent.trim()).then(()=>{btn.textContent=copiedLabel;setTimeout(()=>btn.textContent=original,1500);});});
+    });
+  </script>
+{% endblock %}

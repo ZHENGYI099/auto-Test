@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('upload_page_title') }}{% endblock %}
+{% block content %}
+  <div class="card">
+    <h1>{{ t('upload_heading') }} <span class="badge">{{ t('tool_badge') }}</span></h1>
+    <p style="margin-top:.2rem;font-size:.8rem;opacity:.75">{{ t('upload_subtitle') }}</p>
+    <form id="uploadForm" action="{{ url_for('api_convert') }}" method="post" enctype="multipart/form-data" novalidate>
+      <div class="field">
+        <label>{{ t('csv_file') }}</label>
+        <input type="file" name="file" accept=".csv" required />
+      </div>
+      <div class="field">
+        <label>{{ t('test_case_id_optional') }}</label>
+        <input type="text" name="testcaseid" placeholder="case34717304" />
+      </div>
+      <div class="actions">
+        <button class="primary" type="submit">{{ t('convert_btn') }}</button>
+        <button type="button" id="quickApi" style="display:none">快速 API 预览</button>
+      </div>
+    </form>
+    <div id="apiPreview" style="display:none;margin-top:1rem">
+      <h2 style="font-size:.9rem;margin:.2rem 0 .4rem">{{ t('api_curl_title') }}</h2>
+      <div class="code-block"><button class="copy-btn" data-target="curlBox" data-copied="{{ t('copied') }}">{{ t('copy') }}</button>
+        <pre id="curlBox">curl -X POST -F "file=@你的文件.csv" -F "testcaseid=TC123" {{ request.url_root.rstrip('/') }}/api/convert/json</pre>
+      </div>
+    </div>
+  </div>
+  <script>
+    const quickApi = document.getElementById('quickApi');
+    const apiPreview = document.getElementById('apiPreview');
+    quickApi.addEventListener('click', ()=>{ apiPreview.style.display = apiPreview.style.display==='none'?'block':'none'; });
+    // 显示按钮(演示用途，可扩展权限控制)
+    quickApi.style.display='inline-block';
+    // 复制按钮
+    document.querySelectorAll('.copy-btn').forEach(btn=>{
+      const original = btn.textContent;
+      const copiedLabel = btn.getAttribute('data-copied')||'Copied';
+      btn.addEventListener('click',()=>{const id=btn.getAttribute('data-target');const el=document.getElementById(id);navigator.clipboard.writeText(el.textContent.trim()).then(()=>{btn.textContent=copiedLabel;setTimeout(()=>btn.textContent=original,1500);});});
+    });
+  </script>
+{% endblock %}

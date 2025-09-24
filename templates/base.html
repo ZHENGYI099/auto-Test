@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <title>{% block title %}{{ t('brand') }}{% endblock %}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">📄 {{ t('brand') }}</div>
+    <nav class="nav-links">
+      <a href="{{ url_for('index') }}">{{ t('upload_nav') }}</a>
+      <a href="https://" target="_blank" rel="noopener">{{ t('doc') }}</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:.4rem">
+      <a href="{{ url_for('set_lang', lang='zh') }}" style="font-size:.7rem;opacity:{{ '1' if lang.startswith('zh') else '.55' }}">中文</a>
+      <span style="opacity:.35">|</span>
+      <a href="{{ url_for('set_lang', lang='en') }}" style="font-size:.7rem;opacity:{{ '1' if lang.startswith('en') else '.55' }}">EN</a>
+      <button id="themeToggle" class="theme-btn" aria-label="{{ t('theme_toggle') }}">🌙</button>
+    </div>
+  </header>
+  <main class="container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash" role="alert">{{ messages[0] }}</div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">© {{ 2025 }} Auto Test · <span id="buildTime"></span></footer>
+  <script>
+    // 主题切换
+    const root = document.documentElement;
+    const saved = localStorage.getItem('theme');
+    if(saved){root.setAttribute('data-theme', saved)}
+    const btn = document.getElementById('themeToggle');
+    function applyIcon(){ btn.textContent = root.getAttribute('data-theme')==='dark' ? '☀️' : '🌙'; }
+    applyIcon();
+    btn.addEventListener('click', ()=>{const cur=root.getAttribute('data-theme');const next=cur==='dark'?'light':'dark';root.setAttribute('data-theme',next);localStorage.setItem('theme',next);applyIcon();});
+    // 构建时间
+    document.getElementById('buildTime').textContent = new Date().toLocaleString();
+  </script>
+  {% block body_extra %}{% endblock %}
+</body>
+</html>
