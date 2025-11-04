@@ -1,0 +1,21 @@
+﻿# Test Scenario: Test UserNotificationsPlugin
+Steps,Action,Expect result
+1,"Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",Client agent installed successfully
+2,"Download ""test_toast.ps1"" from attachments, and place it under the same folder",
+3,"In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+4,Run command: msiexec /i cmdextension.msi SVCENV=Test,
+5,"Wait 10 minutes, run command: .\test_toast.ps1 (if the script fails to run due to powershell execution policy, then run command first: Set-ExecutionPolicy Bypass)",
+6,A sample toast UX will be popped up at the bottom right corner of the screen.,"Verify the popup's layout is the same as the image in ""Discussion""."
+7,"Open file explorer, go to %ProgramData%\Microsoft\CMDExtension\Logs. 
+Open ""UserNotificationsPlugin.log""","Verify below contents are in the log.
+
+- The UX input is : {""TemplateType"":""sampleTemplate""
+- DisplayUserNotification is waiting for the UX to be closed"
+8,"Select ""Delay 4 Hours"" from the listbox, and click on ""Delay"" button.",
+9,"Open file explorer, go to %ProgramData%\Microsoft\CMDExtension\Logs. 
+Open ""UserNotificationsPlugin.log""","Open file explorer, go to %ProgramData%\Microsoft\CMDExtension\Logs. 
+Open ""UserNotificationsPlugin.log"""
+10,"Test Cleanup:
+
+
+In the same powershell window as “Step 3”, run command: msiexec /x cmdextension.msi",

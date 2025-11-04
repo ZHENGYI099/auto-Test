@@ -1,0 +1,51 @@
+{
+  "test_case_id": "case3test",
+  "test_scenario": "Check agent automatically run when the device restarts",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Apply to all devices.",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Run command: msiexec /i cmdextension.msi",
+      "expected": ""
+    },
+    {
+      "step": 5,
+      "action": "Wait 1 minute, and restart the device",
+      "expected": ""
+    },
+    {
+      "step": 6,
+      "action": "Open “Task Manager -> Services”",
+      "expected": "Verify “CloudManagedDesktopExtension” is in running state."
+    },
+    {
+      "step": 7,
+      "action": "Press “Win + R” keys, type “services.msc” and press Enter.",
+      "expected": "Verify “Microsoft Cloud Managed Desktop Extension” - Status is “Running”, Startup Type is “Automatic”, and Log On As is “Local System”."
+    },
+    {
+      "step": 8,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs. Open “CMDExtension.log”",
+      "expected": "Verify there are at least 2 lines of “Start up args length: 0” in the log."
+    },
+    {
+      "step": 9,
+      "action": "Test Cleanup:\n\nIn the same powershell window as “Step 3”, run command: msiexec /x cmdextension.msi",
+      "expected": ""
+    }
+  ]
+}

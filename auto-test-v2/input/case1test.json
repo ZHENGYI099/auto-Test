@@ -1,0 +1,61 @@
+{
+  "test_case_id": "case1test",
+  "test_scenario": "Check agent installation",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Apply to all devices.",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates,cmdextension.msi locates in C:\\VMShare",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Run command: msiexec /i cmdextension.msi /qn+",
+      "expected": "The prompt window should pop up: Title is “Microsoft Cloud Manage Desktop Extension”, and Message is “Microsoft Cloud Managed Desktop Extension Setup completed successfully.”\n\nIf the step failed, run: msiexec /i cmdextension.msi /qn+ /l*v mylog. Send mylog to CMD Agent team for troubleshooting"
+    },
+    {
+      "step": 5,
+      "action": "Open “Control Panel -> Programs -> Uninstall a program”",
+      "expected": "Verify “Microsoft Cloud Managed Desktop Extension” is present in the list of installed programs."
+    },
+    {
+      "step": 6,
+      "action": "Open “Task Manager -> Services”",
+      "expected": "Verify “CloudManagedDesktopExtension”\nis in running state."
+    },
+    {
+      "step": 7,
+      "action": "Press “Win + R” keys, type “services.msc” and press Check agent installationnter.",
+      "expected": "Verify “Microsoft Cloud Managed Desktop Extension” - Status is “Running”, Startup Type is “Automatic (Delayed Start)”, and Log On As is “Local System”."
+    },
+    {
+      "step": 8,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs.",
+      "expected": "Verify “CMDExtension.log” is present."
+    },
+    {
+      "step": 9,
+      "action": "Press “Win + R” keys, type “taskschd.msc” and press Enter. Open “Task scheduler library -> Microsoft -> CMD”",
+      "expected": "Verify “Cloud Managed Desktop Extension Health Evaluation” is present."
+    },
+    {
+      "step": 10,
+      "action": "Press “Win + R” keys, type “wbemtest” and press Enter. Click on “Connect”, type “root\\cmd\\clientagent” and press Enter.",
+      "expected": "Verify there is NOT error prompt window which displays “Invalid namespace”."
+    },
+    {
+      "step": 11,
+      "action": "Test Cleanup:\n\n\nIn the same PowerShell window as “Step 3”, run command: msiexec /x cmdextension.msi",
+      "expected": ""
+    }
+  ]
+}

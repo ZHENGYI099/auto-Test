@@ -1,0 +1,86 @@
+{
+  "test_case_id": "case22.2test",
+  "test_scenario": "CMD Agent unified channel (include upgrade) with CPC only partner",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Install cmd agent with correct SVCENV (Test) and wait for 1 minute",
+      "expected": "Open registry \"Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\CloudManagementDesktop\\Extension\\Settings\" Partners should be CPC.\n PartnersTagDict should be CPC=TEST01"
+    },
+    {
+      "step": 2,
+      "action": "Wait for 15 minutes and check logs in \"C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\" folder.",
+      "expected": "1. MessageSenderPlugin.log contains log \"MessageSenderPlugin execute result is: {\"TotalSize\":xxx,\"Count\":x,\"CommunicationChannel\":\"IoTHub\"}\" xxx and xx are larger than 0.\n2. HeartbeatPlugin.log contains 1 success log starts with \"{\"ServiceStatus\":\"Running\",\"AgentVersion\":\""
+    },
+    {
+      "step": 3,
+      "action": "Forbidden iothub endpoint:\na. Open registry \"Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\CloudManagementDesktop\\Extension\\Settings\" and copy the value of IoTHostName \nb. Run nslookup {IoTHostName value}, copy the Address in Non-authoritative answer.\n\na. Create a rule to forbid this address: follow the “Block IP Address in Windows Firewall” step: https://windowsloop.com/block-website-or-ip-address-in-windows-firewall/ (Make sure the protocol type is any)",
+      "expected": "Get VersionInfo of a list of files"
+    },
+    {
+      "step": 4,
+      "action": "For x64 device, open Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\CloudManagementDesktop\\Extension\\DiagnosticInfo.",
+      "expected": "1. LatestIoTSendSuccessUtc should have value\n2. FirstHttpsSendFailedUtc, FirstIoTSendFailedUtc, LatestHttpsSendSuccessUtc should be \"0001/1/1 0:00:00\""
+    },
+    {
+      "step": 5,
+      "action": "Wait for more than12 hours (If the device has been shut down, sleep, hibernation etc., please wait 24 more hours after FirstIoTSendFailedUtc in registry. Please notice the time in registry is UTC time, please add 8 hours when the device is China time zone)",
+      "expected": ""
+    },
+    {
+      "step": 6,
+      "action": "For x64 device, open Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\CloudManagementDesktop\\Extension\\DiagnosticInfo.",
+      "expected": "1. CMDAgentCommunicationChannel should be Https"
+    },
+    {
+      "step": 7,
+      "action": "check logs in \"C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\" folder.",
+      "expected": "1. MessageSenderPlugin.log contains \"MessageSenderPlugin execute result is: {\"TotalSize\":xx,\"Count\":xx,\"CommunicationChannel\":\"Https\"}\", xx and x both larger than 0 2.MessageSenderPlugin.log contains \" Https channel send messages to dgs successfully\".\n3. HeartbeatPlugin.log contains multiple success log starts with \"{\"ServiceStatus\":\"Running\",\"AgentVersion\":\""
+    },
+    {
+      "step": 8,
+      "action": "For x64 device, open Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\CloudManagementDesktop\\Extension\\Settings.\n1. if NextUpradeViaHttpsDateTime is greater than current time, update it to a time that smaller than current.\n2. Run command wbemtest as admin, open root\\cmd\\clientagent, recurisive class, find SchedulerEntity, instances, traverse all entites and find the one that PluginName is UpdateCheckerPlugin.\n3. Double click the property \"LastRunTime\" and update it to a day ago. For example, 20230514051419.688461+000 to 20230513051419.688461+000\n4. wait for 1 minutes",
+      "expected": "1. UpdateCheckerPlugin.log updated recently and latest log is \"Plugin 0c0b7866-fd11-4ec1-8636-7da3478b7160 executes policy 819301bd-f921-4ee3-902f-1ed870030087 Success but failed to process the result to NoSender\"\n2. UpdateCheckerPlugin.log recently contains \"Known exception: CDNSourceDownloadUrl and StorageSourceDownloadUrl are empty\" or \"Download msi from received cdn uri\" or \"NextUpradeViaHttpsDateTime is\""
+    },
+    {
+      "step": 9,
+      "action": "Disable the rule in firewall, wait for 4 hours and check logs in \"C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\" folder.",
+      "expected": "1. MessageSenderPlugin.log contains \"MessageSenderPlugin execute result is: {\"TotalSize\":xx,\"Count\":xx,\"CommunicationChannel\":\"IoTHub\"}\" after step 2, xx and x both larger than 0. \n\n2. HeartbeatPlugin.log contains  1 more success log starts with \"{\"ServiceStatus\":\"Running\",\"AgentVersion\":\" after step3"
+    },
+    {
+      "step": 10,
+      "action": "Uninstall cmd agent and clear log folder \"C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\"",
+      "expected": ""
+    },
+    {
+      "step": 11,
+      "action": "Enable the rule in firewall",
+      "expected": ""
+    },
+    {
+      "step": 12,
+      "action": "Install cmd agent with correct parameters",
+      "expected": ""
+    },
+    {
+      "step": 13,
+      "action": "Record current local time {time1}, wait for more than 12 hours, pick the latest \"Service is on OnStart\" in InfraLogs/AgentMainService.log with {time2}. time2 is UTC time, transfer to Utc+8 to local time {time3}. If time3 + 12 is in future, please wait until time3 +12.\n Check logs in \"C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\" folder.",
+      "expected": "1.  \"MessageSenderPlugin execute result is: {\"TotalSize\":xx,\"Count\":xx,\"CommunicationChannel\":\"Https\"}\", xx and x both larger than 0.\n\n2, MessageSenderPlugin(-xxxx).log does not contain \"MessageSenderPlugin execute result is: {\"TotalSize\":xx,\"Count\":xx,\"CommunicationChannel\":\"IoTHub\"}\"\n\n3. CMDExtension(-xxxx).log doesn't contain \"DeviceClient created and opened successfully.\""
+    },
+    {
+      "step": 14,
+      "action": "Disable firewall rule",
+      "expected": ""
+    },
+    {
+      "step": 15,
+      "action": "Wait for more than 6 hours and check logs in \"C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\" folder.",
+      "expected": "1. MessageSenderPlugin.log contains \"MessageSenderPlugin execute result is: {\"TotalSize\":xx,\"Count\":xx,\"CommunicationChannel\":\"IoTHub\"}\" xx and x both larger than 0.\n\n3. CMDExtension.log contains \"DeviceClient created and opened successfully.\""
+    },
+    {
+      "step": 16,
+      "action": "Cleanup: uninstall agent",
+      "expected": ""
+    }
+  ]
+}

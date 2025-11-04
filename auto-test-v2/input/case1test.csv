@@ -1,0 +1,19 @@
+﻿# Test Scenario: Check agent installation
+Steps,Action,Expect result
+1,Apply to all devices.,
+2,"Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates,cmdextension.msi locates in C:\VMShare",
+3,"In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+4,Run command: msiexec /i cmdextension.msi /qn+,"The prompt window should pop up: Title is “Microsoft Cloud Manage Desktop Extension”, and Message is “Microsoft Cloud Managed Desktop Extension Setup completed successfully.”
+
+If the step failed, run: msiexec /i cmdextension.msi /qn+ /l*v mylog. Send mylog to CMD Agent team for troubleshooting"
+5,Open “Control Panel -> Programs -> Uninstall a program”,Verify “Microsoft Cloud Managed Desktop Extension” is present in the list of installed programs.
+6,Open “Task Manager -> Services”,"Verify “CloudManagedDesktopExtension”
+is in running state."
+7,"Press “Win + R” keys, type “services.msc” and press Check agent installationnter.","Verify “Microsoft Cloud Managed Desktop Extension” - Status is “Running”, Startup Type is “Automatic (Delayed Start)”, and Log On As is “Local System”."
+8,"Open file explorer, go to %ProgramData%\Microsoft\CMDExtension\Logs. ",Verify “CMDExtension.log” is present.
+9,"Press “Win + R” keys, type “taskschd.msc” and press Enter. Open “Task scheduler library -> Microsoft -> CMD”",Verify “Cloud Managed Desktop Extension Health Evaluation” is present.
+10,"Press “Win + R” keys, type “wbemtest” and press Enter. Click on “Connect”, type “root\cmd\clientagent” and press Enter.",Verify there is NOT error prompt window which displays “Invalid namespace”.
+11,"Test Cleanup:
+
+
+In the same PowerShell window as “Step 3”, run command: msiexec /x cmdextension.msi",

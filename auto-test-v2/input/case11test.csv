@@ -1,0 +1,20 @@
+﻿# Test Scenario: Check agent upgrade success and wmi table correct
+Steps,Action,Expect result
+1,"Apply to all devices, when we have at least 2 versions of release candidate. (version number: v1 < v2)",
+2,"Press “Win + E” keys,
+open File Explorer, go to the folder where “cmdextension.v1.msi and
+cmdextension.v2.msi” locates",
+3,"In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+4,"Run command: msiexec /i cmdextension.v1.msi SVCENV=""Test""",
+5,"Wait 1 minute. 1. Check CMDExtension.log, there is ""DeviceClient created and opened successfully""
+
+2. Run Powershell in admin mode: $sc = Get-WmiObject -Namespace ""root/cmd/clientagent"" -Class SchedulerEntity; $test1=@();for ($i=0; $i -lt $sc.Length;$i++){$test1+=$sc[$i].PolicyId}; $test2=$test1 | select -unique; $test1.Length -eq $test2.Length",Powershell result is True
+6,"Run command msiexec /i cmdextension.v2.msi /qn+ SVCENV=""Test""","The prompt window should pop up: Title is “Microsoft Cloud Managed Desktop Extension”, and Message is “Microsoft Cloud Managed Desktop Extension Setup completed successfully.”"
+7,"Wait 1 minute. 1. Check CMDExtension.log, there is ""DeviceClient created and opened successfully""
+
+2. Run Powershell in admin mode: $sc = Get-WmiObject -Namespace ""root/cmd/clientagent"" -Class SchedulerEntity; $test1=@();for ($i=0; $i -lt $sc.Length;$i++){$test1+=$sc[$i].PolicyId}; $test2=$test1 | select -unique; $test1.Length -eq $test2.Length",Powershell result is True
+8,Open “Control Panel -> Programs -> Uninstall a program”,"Verify “Microsoft Cloud Managed Desktop Extension” is present in the list of installed programs, and its Version is [v2-version-number]."
+9,"Test Cleanup:
+
+
+In the same powershell window as “Step 3”, run command: msiexec /x cmdextension.v2.msi",

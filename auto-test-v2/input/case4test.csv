@@ -1,0 +1,26 @@
+﻿# Test Scenario: Check agent registration success at the first time and after cert deleted
+Steps,Action,Expect result
+1,"Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+2,"In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+3,Run command: msiexec /i cmdextension.msi SVCENV=Test,
+4,"Wait 5 minutes, and go to validation",
+5,"Open file explorer, go to %ProgramData%\Microsoft\CMDExtension\Logs. 
+Open “CMDExtension.log”","Verify below contents are in the log.
+
+·     “DeviceClient created and opened successfully”
+
+Verify below contents are not in the log.
+
+·     “Failed to create instance for plugin”"
+6,"Press “Win + R” keys, type “wbemtest” and press Enter. 
+Click on “Connect”, type “root\cmd\clientagent” and press Enter. 
+Click on “Enum Instances”, type “SchedulerEntity” and press Enter.",Verify the list of instances is NOT empty.S
+7,"Open registry (Computer\HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\CloudManagementDesktop\Extension\Settings for x86, Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\CloudManagementDesktop\Extension\Settings for x64), if the DeviceRegistrationType is Certificate, continue the test. Otherwise go to ""Test Cleanup""",
+8,"Run command ""certlm""",
+9,"Open Certificates - Local Computer - Personal - Certificates, find the cert ""Issued To"" and ""Issued By"" value is {tenantId.aadDeviceId}. (Attached the screenshot in Discussion)",
+10,"Right click on the cert, and delete it.",
+11,"Go to Service panel, restart ""Microsoft Cloud Managed Desktop Extension""",
+12,Check “CMDExtension.log”,"Verify there are logs after restart: ""Clear iot connection info success"" and ""RegisterDeviceToHermesAsync starts"" and ""DeviceClient created and opened successfully"""
+13,"Right click and refresh Certificate, the the cert ""Issued To"" and ""Issued By"" value is {tenantId.aadDeviceId} should be created again",
+14,"Test Cleanup:
+In the same powershell window as “Step 3”, run command: msiexec /x cmdextension.msi",

@@ -1,0 +1,26 @@
+{
+  "test_case_id": "case21test",
+  "test_scenario": "Check FileVersion of binary files",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Install CMD Agent with a given version to test.",
+      "expected": "Client agent installed successfully"
+    },
+    {
+      "step": 2,
+      "action": "Open Powershell terminal, go to the install folder of CMD client agent, default one is: C:\\Program Files\\Microsoft Cloud Managed Desktop Extension\\CMDExtension",
+      "expected": "The folder exists"
+    },
+    {
+      "step": 3,
+      "action": "Run the powershell command in the folder: \n(Get-ChildItem -Recurse -Filter Microsoft.Management.Services.* .).VersionInfo",
+      "expected": "Get VersionInfo of a list of files"
+    },
+    {
+      "step": 4,
+      "action": "Check the FileVersion field of all the listed dll / exe files (can exclude config and pdb files)",
+      "expected": "The FileVersion shall be the same as the installed CMD client agent version."
+    }
+  ]
+}

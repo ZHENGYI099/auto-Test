@@ -1,0 +1,56 @@
+{
+  "test_case_id": "case22.1test",
+  "test_scenario": "CMD Agent unified channel with mulitiple partners",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Install cmd agent with correct SVCENV (Test) and wait for 1 minute",
+      "expected": "Open registry \"Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\CloudManagementDesktop\\Extension\\Settings\" Partners should contain more than 1 partner."
+    },
+    {
+      "step": 2,
+      "action": "Wait for 15 minutes and check logs in \"C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\" folder.",
+      "expected": "1. MessageSenderPlugin.log contains log \"MessageSenderPlugin execute result is: {\"TotalSize\":xxx,\"Count\":x,\"CommunicationChannel\":\"IoTHub\"}\" xxx and xx are larger than 0.\n2. HeartbeatPlugin.log contains 1 success log starts with \"{\"ServiceStatus\":\"Running\",\"AgentVersion\":\""
+    },
+    {
+      "step": 3,
+      "action": "Forbidden iothub endpoint:\na. Open registry \"Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\CloudManagementDesktop\\Extension\\Settings\" and copy the value of IoTHostName \nb. Run nslookup {IoTHostName value}, copy the Address in Non-authoritative answer.\n\na. Create a rule to forbid this address: follow the “Block IP Address in Windows Firewall” step: https://windowsloop.com/block-website-or-ip-address-in-windows-firewall/ (Make sure the protocol type is any)",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Wait for 12 hours (If the device has been shutdown, please wait 2 more hours after  device start up) and check logs in \"C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\" folder.",
+      "expected": "1. MessageSenderPlugin.log only contains \"MessageSenderPlugin execute result is: {\"TotalSize\":0,\"Count\":0,\"CommunicationChannel\":\"IoTHub\"}\" after step3.\n\n2. HeartbeatPlugin.log contains multiple success log starts with \"{\"ServiceStatus\":\"Running\",\"AgentVersion\":\""
+    },
+    {
+      "step": 5,
+      "action": "Disable the rule in step3, wait for 1 hour and check logs in \"C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\" folder.",
+      "expected": "1. MessageSenderPlugin.log contains log \"MessageSenderPlugin execute result is: {\"TotalSize\":xxx,\"Count\":x,\"CommunicationChannel\":\"IoTHub\"}\" xxx and xx are larger than 0 after step4"
+    },
+    {
+      "step": 6,
+      "action": "Uninstall cmd agent and clear log folder \"C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\"",
+      "expected": ""
+    },
+    {
+      "step": 7,
+      "action": "Enable the firewall rule",
+      "expected": ""
+    },
+    {
+      "step": 8,
+      "action": "Install cmd agent",
+      "expected": ""
+    },
+    {
+      "step": 9,
+      "action": "Wait for 5 minutes and check logs in \"C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\" folder.",
+      "expected": "1. MessageSenderPlugin.log and HeartbeatPlugin.log didn't exist\n2. CMDExtension.log doesn't contain \"DeviceClient created and opened successfully.\""
+    },
+    {
+      "step": 10,
+      "action": "Cleanup: uninstall agent, disable outbound port rules in step3",
+      "expected": ""
+    }
+  ]
+}

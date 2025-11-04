@@ -1,0 +1,15 @@
+﻿# Test Scenario: Test send message flow
+Steps,Action,Expect result
+1,"Install client agent with command msiexec /i cmdextension.msi SVCENV=""Test""",
+2,"Run PS command: 
+
+
+$payload =
+""abcdefghijklmn""
+
+for($i=1;
+$i -le 10; $i++){$payload+= $payload}
+
+for($i=1; $i -le 20; $i++){swmi -Namespace
+""root/cmd/clientagent"" -Class ""HighPriorityIoTHubMessage"" -Arguments @{PluginId=""7d3e8eff-7a14-4d03-8861-efde7514feac"";PolicyId=""00000000-0000-0000-0000-000000000000"";Status=""Active"";CreatedAt=""20221118063702.429394+000"";MessageId=New-Guid;CorrelationId=New-Guid;Payload=$payload} > $null}","Run wbemtest in PS, connect root/cmd/clientagent,  Click Enum Classes and select Recursive -> OK. Scroll down and double click ""HighPriorityIoTHubMessage"" -> instances, there should be 20 records"
+3,"Wait for 1 minute, check MessageSenderPlugin.log","There should be logs: “Plugin 10a949a0-756f-46ab-aa74-68091f1612db executes policy f2fd6b33-6da7-4266-abbb-f74b129105d5 Success but failed to process the result to NoSender” and two logs following: ""Start to send 14 messages(size: 200704B) to IotHub"" and ""Start to send 6 messages(size: 86016B) to IotHub"""

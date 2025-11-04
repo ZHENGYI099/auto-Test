@@ -1,0 +1,26 @@
+{
+  "test_case_id": "case19test",
+  "test_scenario": "Test App Health Plugin",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Install client agent with command msiexec /i cmdextension.msi SVCENV=\"Test\"",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Steps\tAction\tExpected result\tAttachments\n2.\t<DIV><p>Search \"Add or remove programs\" in the system and search for\n\n1. Teams Machine-Wide Installer\n2. Remote Desktop WebRTC Redirector Service\n3. MsMmrHostMsi\n4. Remote Desktop Multimedia Redirection Service\n5. Microsoft Teams\n\nRecord each program's [name] and [version]<br></p></DIV>\t<DIV><p><br></p></DIV>",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "Wait for 2 minutest, and check log in C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\\AppHealthPlugin.log",
+      "expected": "TeamsAppVersion should equal to the [version] of program [name] is \"Teams Machine-Wide Installer\"\n    if the program [name] is \"Teams Machine-Wide Installer\" not found\n        TeamsAppVersion should equal to \"NoCurrentVersionFound\"\n\nWebRTCRedirectorVersion should equal to the [version] of program [name] is \"Remote Desktop WebRTC Redirector Service\"\n    if the program [name] is \"Remote Desktop WebRTC Redirector Service\" not found\n        WebRTCRedirectorVersion should equal to \"NoCurrentVersionFound\"\n\nMMRVersion should equal to the [version] of program [name] is \"Remote Desktop Multimedia Redirection Service\"\n    if the program [name] is \"Remote Desktop Multimedia Redirection Service\" not found\n        MMRVersion should equal the [version] of program [name] is \"MsMmrHostMsi\"\n        if the program [name] is \"MsMmrHostMsi\" not found\n            MMRVersion should equal to \"NoCurrentVersionFound\"\n\nTeamsAppV2Version should equal to the [version] of program [name] is \"Microsoft Teams\" or \"Microsoft Teams classic\"\n    if the program [name] is \"Microsoft Teams\" or \"Microsoft Teams classic\" not found\n        TeamAppV2Version should equal to \"NoCurrentVersionFound\""
+    },
+    {
+      "step": 4,
+      "action": "Test Cleanup:\n\n\nRun command: msiexec /x cmdextension.msi",
+      "expected": ""
+    }
+  ]
+}

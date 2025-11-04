@@ -10,6 +10,8 @@ class Step(BaseModel):
 class EnrichedStep(Step):
     action_script: str
     verify_script: Optional[str] = None
+    # Indicates this step likely requires vision-based verification (screenshot + LLM) instead of / in addition to a pure scripted check.
+    need_vision_verify: bool = False
 
 class TestCase(BaseModel):
     test_case_id: str = Field(..., alias="test_case_id")

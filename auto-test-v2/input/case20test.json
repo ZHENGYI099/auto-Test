@@ -1,0 +1,21 @@
+{
+  "test_case_id": "case20test",
+  "test_scenario": "Test send message flow",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Install client agent with command msiexec /i cmdextension.msi SVCENV=\"Test\"",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Run PS command: \n\n\n$payload =\n\"abcdefghijklmn\"\n\nfor($i=1;\n$i -le 10; $i++){$payload+= $payload}\n\nfor($i=1; $i -le 20; $i++){swmi -Namespace\n\"root/cmd/clientagent\" -Class \"HighPriorityIoTHubMessage\" -Arguments @{PluginId=\"7d3e8eff-7a14-4d03-8861-efde7514feac\";PolicyId=\"00000000-0000-0000-0000-000000000000\";Status=\"Active\";CreatedAt=\"20221118063702.429394+000\";MessageId=New-Guid;CorrelationId=New-Guid;Payload=$payload} > $null}",
+      "expected": "Run wbemtest in PS, connect root/cmd/clientagent,  Click Enum Classes and select Recursive -> OK. Scroll down and double click \"HighPriorityIoTHubMessage\" -> instances, there should be 20 records"
+    },
+    {
+      "step": 3,
+      "action": "Wait for 1 minute, check MessageSenderPlugin.log",
+      "expected": "There should be logs: “Plugin 10a949a0-756f-46ab-aa74-68091f1612db executes policy f2fd6b33-6da7-4266-abbb-f74b129105d5 Success but failed to process the result to NoSender” and two logs following: \"Start to send 14 messages(size: 200704B) to IotHub\" and \"Start to send 6 messages(size: 86016B) to IotHub\""
+    }
+  ]
+}

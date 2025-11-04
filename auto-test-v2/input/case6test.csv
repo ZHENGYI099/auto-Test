@@ -1,0 +1,24 @@
+﻿# Test Scenario: Check plugin execution
+Steps,Action,Expect result
+1,"Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+2,"In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+3,Run command: msiexec /i cmdextension.msi SVCENV=Test,
+4,"Wait 20 minutes, and go to validation",
+5,"Open file explorer, go to %ProgramData%\Microsoft\CMDExtension\Logs. 
+Open below log files","Verify corresponding contents are in the logs.
+
+·     HeartbeatPlugin.log: “ServiceStatus: Running, Agent Version: [version-number], CpuUsage:
+[cpu-percentage], MemoryUsage: [memory-in-MB]”
+
+·     GuardianTaskCheckerPlugin.log: “Check success for CMD Client Agent Guardian
+task (task folder name: CMD, task name: Cloud Managed Desktop Extension Health
+Evaluation)”
+
+·     MessageSenderPlugin.log: 
+1. “Plugin 10a949a0-756f-46ab-aa74-68091f1612db executes policy b62873d6-2aec-403a-95ac-6e84250e46cd Success but failed to process the result to NoSender” - should be printed every 15 minute;
+2. “Plugin 10a949a0-756f-46ab-aa74-68091f1612db executes policy f2fd6b33-6da7-4266-abbb-f74b129105d5 Success but failed to process the result to NoSender” - should be printed every 1 minute; 
+2. “Batch messages handler time watch : Updating message status duration” - should be printed at least once."
+6,"Test Cleanup:
+
+
+In the same powershell window as “Step 3”, run command: msiexec /x cmdextension.msi",

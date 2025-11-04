@@ -1,0 +1,17 @@
+﻿# Test Scenario: Check agent uninstallation
+Steps,Action,Expect result
+1,Apply to all devices.,
+2,"Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+3,"In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+4,Run command: msiexec /i cmdextension.msi,
+5,"Wait 1 minute, and run command: msiexec /x cmdextension.msi /qn+","The prompt window should pop up: Title is “Microsoft Cloud Managed Desktop Extension”, and Message is “Microsoft Cloud Managed Desktop Extension Setup completed successfully.”"
+6,Open “Control Panel -> Programs -> Uninstall a program”,Verify there is NO “Microsoft Cloud Managed Desktop Extension” in the list of installed programs.
+7,Open “Task Manager -> Services”,Verify there is NO “CloudManagedDesktopExtension”.
+8,"Press “Win + R” keys, type “services.msc” and press Enter. ",Verify there is NO “Microsoft Cloud Managed Desktop Extension”.
+9,"Open filer explorer, go to ""C:\\Program Files"" (for 64bit version) or ""C:\\Program Files (x86)"" (for 32bit version)","Verify there is NO
+“Microsoft Cloud Managed Desktop Extension” folder."
+10,"Open file explorer, go to %ProgramData%\Microsoft\CMDExtension\Logs. ",Verify “CMDExtension.log” is still present.
+11,Open “Logs\InfraLogs\AgentMainService.log”,Verify “Service is on OnStop” is printed.
+12,"Press “Win + R” keys, type “taskschd.msc” and press Enter. Open “Task scheduler library -> Microsoft -> CMD”",Verify there is NOT “Cloud Managed Desktop Extension Health Evaluation”.
+13,"Press “Win + R” keys, type “wbemtest” and press Enter. Click on “Connect”, type “root\cmd\clientagent” and press Enter. ",Verify there is error prompt window which displays “Invalid namespace”.
+14,Open registry,"Verify there is no ""CloudManagementDesktop"" under Computer\HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft for x86, Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft for x64"

@@ -1,0 +1,51 @@
+{
+  "test_case_id": "case8test",
+  "test_scenario": "Check user logout/login",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Login on the device",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Run command: msiexec /i cmdextension.msi SVCENV=Test",
+      "expected": ""
+    },
+    {
+      "step": 5,
+      "action": "Wait 5 minutes and logout (don’t turn off the device)",
+      "expected": ""
+    },
+    {
+      "step": 6,
+      "action": "Wait another 5 minutes and login back",
+      "expected": ""
+    },
+    {
+      "step": 7,
+      "action": "Wait another 5 minutes, logout and login as another user",
+      "expected": ""
+    },
+    {
+      "step": 8,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs. \nOpen “CMDExtension.log”",
+      "expected": "Verify agent was running by below contents’ timestamp.\n\n·     “Plugin run scheduler with CMDAgentCommunicationChannel:” - should be printed every 20 seconds during logout period."
+    },
+    {
+      "step": 9,
+      "action": "Test Cleanup:\n\nIn the same powershell window as “Step 4”, run command: msiexec /x cmdextension.msi",
+      "expected": ""
+    }
+  ]
+}

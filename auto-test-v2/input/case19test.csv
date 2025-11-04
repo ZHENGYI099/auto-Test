@@ -1,0 +1,34 @@
+﻿# Test Scenario: Test App Health Plugin
+Steps,Action,Expect result
+1,"Install client agent with command msiexec /i cmdextension.msi SVCENV=""Test""",
+2,"Steps	Action	Expected result	Attachments
+2.	<DIV><p>Search ""Add or remove programs"" in the system and search for
+
+1. Teams Machine-Wide Installer
+2. Remote Desktop WebRTC Redirector Service
+3. MsMmrHostMsi
+4. Remote Desktop Multimedia Redirection Service
+5. Microsoft Teams
+
+Record each program's [name] and [version]<br></p></DIV>	<DIV><p><br></p></DIV>	",
+3,"Wait for 2 minutest, and check log in C:\ProgramData\Microsoft\CMDExtension\Logs\AppHealthPlugin.log","TeamsAppVersion should equal to the [version] of program [name] is ""Teams Machine-Wide Installer""
+    if the program [name] is ""Teams Machine-Wide Installer"" not found
+        TeamsAppVersion should equal to ""NoCurrentVersionFound""
+
+WebRTCRedirectorVersion should equal to the [version] of program [name] is ""Remote Desktop WebRTC Redirector Service""
+    if the program [name] is ""Remote Desktop WebRTC Redirector Service"" not found
+        WebRTCRedirectorVersion should equal to ""NoCurrentVersionFound""
+
+MMRVersion should equal to the [version] of program [name] is ""Remote Desktop Multimedia Redirection Service""
+    if the program [name] is ""Remote Desktop Multimedia Redirection Service"" not found
+        MMRVersion should equal the [version] of program [name] is ""MsMmrHostMsi""
+        if the program [name] is ""MsMmrHostMsi"" not found
+            MMRVersion should equal to ""NoCurrentVersionFound""
+
+TeamsAppV2Version should equal to the [version] of program [name] is ""Microsoft Teams"" or ""Microsoft Teams classic""
+    if the program [name] is ""Microsoft Teams"" or ""Microsoft Teams classic"" not found
+        TeamAppV2Version should equal to ""NoCurrentVersionFound"""
+4,"Test Cleanup:
+
+
+Run command: msiexec /x cmdextension.msi",

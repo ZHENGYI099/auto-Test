@@ -1,0 +1,56 @@
+{
+  "test_case_id": "case24test",
+  "test_scenario": "Test UserNotificationsPlugin",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+      "expected": "Client agent installed successfully"
+    },
+    {
+      "step": 2,
+      "action": "Download \"test_toast.ps1\" from attachments, and place it under the same folder",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Run command: msiexec /i cmdextension.msi SVCENV=Test",
+      "expected": ""
+    },
+    {
+      "step": 5,
+      "action": "Wait 10 minutes, run command: .\\test_toast.ps1 (if the script fails to run due to powershell execution policy, then run command first: Set-ExecutionPolicy Bypass)",
+      "expected": ""
+    },
+    {
+      "step": 6,
+      "action": "A sample toast UX will be popped up at the bottom right corner of the screen.",
+      "expected": "Verify the popup's layout is the same as the image in \"Discussion\"."
+    },
+    {
+      "step": 7,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs. \nOpen \"UserNotificationsPlugin.log\"",
+      "expected": "Verify below contents are in the log.\n\n- The UX input is : {\"TemplateType\":\"sampleTemplate\"\n- DisplayUserNotification is waiting for the UX to be closed"
+    },
+    {
+      "step": 8,
+      "action": "Select \"Delay 4 Hours\" from the listbox, and click on \"Delay\" button.",
+      "expected": ""
+    },
+    {
+      "step": 9,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs. \nOpen \"UserNotificationsPlugin.log\"",
+      "expected": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs. \nOpen \"UserNotificationsPlugin.log\""
+    },
+    {
+      "step": 10,
+      "action": "Test Cleanup:\n\n\nIn the same powershell window as “Step 3”, run command: msiexec /x cmdextension.msi",
+      "expected": ""
+    }
+  ]
+}

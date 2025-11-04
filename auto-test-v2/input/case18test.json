@@ -1,0 +1,46 @@
+{
+  "test_case_id": "case18test",
+  "test_scenario": "Test enable/disable plugin",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Install client agent with command msiexec /i cmdextension.msi SVCENV=\"Test\"",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Wait for 2 minutest, and check log in C:\\ProgramData\\Microsoft\\CMDExtension\\Logs",
+      "expected": "There should be no \"CommonPostProvisioningPlugin.log\" and \"PawnPlugin.log\""
+    },
+    {
+      "step": 3,
+      "action": "Run powershell: $time = Get-Date\n\n$versionstr = Get-Date -UFormat \"%Y%m.%d%H.%M%S\"\n\n$payload = \"{`\"Type`\":1,`\"PluginId`\":`\"9c573ac5-3ad7-4680-81c1-3ec529ced175`\",`\"RequestTime`\":`\"\"+$time+\"`\",`\"Payload`\":`\"True`\"}\"\n\n$policy = @{PluginId=\"92611f58-44a1-4ff5-be2a-c27a53c15cd7\";PluginName=\"PluginManagementPlugin\";PolicyId=\"be8c130b-a7cb-42df-be90-344affa13e31\";Version=$versionstr;Status=\"Initial\";Enabled=\"True\";SchedulerMessage=\"SMSSchedule;ScheduleString=58419D0000080001\";Payload=$payload}\n\nswmi -Namespace \"root/cmd/clientagent\" -Class \"PluginPolicy\" -Arguments $policy > $null",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Check log in C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\\PluginManagementPlugin.log.",
+      "expected": "There should be \"9c573ac5-3ad7-4680-81c1-3ec529ced175 is not valid for the partner: \""
+    },
+    {
+      "step": 5,
+      "action": "Run powershell: $time = Get-Date\n\n$versionstr = Get-Date -UFormat \"%Y%m.%d%H.%M%S\"\n\n$payload = \"{`\"Type`\":1,`\"PluginId`\":`\"6251a87d-5ec4-4a5e-b836-f6c3a233b4e7`\",`\"RequestTime`\":`\"\"+$time+\"`\",`\"Payload`\":`\"True`\"}\"\n\n$policy = @{PluginId=\"92611f58-44a1-4ff5-be2a-c27a53c15cd7\";PluginName=\"PluginManagementPlugin\";PolicyId=\"be8c130b-a7cb-42df-be90-344affa13e31\";Version=$versionstr;Status=\"Initial\";Enabled=\"True\";SchedulerMessage=\"SMSSchedule;ScheduleString=58419D0000080001\";Payload=$payload}\n\nswmi -Namespace \"root/cmd/clientagent\" -Class \"PluginPolicy\" -Arguments $policy > $null",
+      "expected": ""
+    },
+    {
+      "step": 6,
+      "action": "Check log in C:\\ProgramData\\Microsoft\\CMDExtension\\Logs\\PluginManagementPlugin.log",
+      "expected": "There should be \"update pluginid(6251a87d-5ec4-4a5e-b836-f6c3a233b4e7) enable state to enabled success\""
+    },
+    {
+      "step": 7,
+      "action": "Run powershell: $time = Get-Date\n\n$versionstr = Get-Date -UFormat \"%Y%m.%d%H.%M%S\"\n\n$payload = \"{`\"Type`\":1,`\"PluginId`\":`\"caf0ee4a-1c93-4bdc-8644-746e94566750`\",`\"RequestTime`\":`\"\"+$time+\"`\",`\"Payload`\":`\"False`\"}\"\n\n$policy = @{PluginId=\"92611f58-44a1-4ff5-be2a-c27a53c15cd7\";PluginName=\"PluginManagementPlugin\";PolicyId=\"be8c130b-a7cb-42df-be90-344affa13e31\";Version=$versionstr;Status=\"Initial\";Enabled=\"True\";SchedulerMessage=\"SMSSchedule;ScheduleString=58419D0000080001\";Payload=$payload}\n\nswmi -Namespace \"root/cmd/clientagent\" -Class \"PluginPolicy\" -Arguments $policy > $null",
+      "expected": "There should be \"Infra plugin caf0ee4a-1c93-4bdc-8644-746e94566750 is not allowed to\""
+    },
+    {
+      "step": 8,
+      "action": "Test Cleanup:\n\n\nRun command: msiexec /x cmdextension.msi",
+      "expected": ""
+    }
+  ]
+}

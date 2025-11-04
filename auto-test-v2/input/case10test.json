@@ -1,0 +1,41 @@
+{
+  "test_case_id": "case10test",
+  "test_scenario": "Check agent downgrade",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Apply to all devices, when we have at least 2 versions of release candidate. (version number: v1 < v2)",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.v1.msi and cmdextension.v2.msi” locates",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Run command: msiexec /i cmdextension.v2.msi",
+      "expected": ""
+    },
+    {
+      "step": 5,
+      "action": "Wait 1 minute, and run command msiexec /i cmdextension.v1.msi /qn+",
+      "expected": "The prompt window should pop up: Title is “Microsoft Cloud Managed Desktop Extension”, and Message is “Microsoft Cloud Managed Desktop Extension Setup failed.”"
+    },
+    {
+      "step": 6,
+      "action": "Open “Control Panel -> Programs -> Uninstall a program”",
+      "expected": "Verify “Microsoft Cloud Managed Desktop Extension” is present in the list of installed programs, and its Version is [v2-version-number]."
+    },
+    {
+      "step": 7,
+      "action": "Test Cleanup:\n\n\nIn the same powershell window as “Step 3”, run command: msiexec /x cmdextension.v2.msi",
+      "expected": ""
+    }
+  ]
+}

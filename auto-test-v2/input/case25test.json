@@ -1,0 +1,41 @@
+{
+  "test_case_id": "case25test",
+  "test_scenario": "CMD Agent disconnect IoT hub with CPC only partner",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Install cmd agent with correct SVCENV (Test) and wait for 1 minute",
+      "expected": "1. Open registry \"Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\CloudManagementDesktop\\Extension\\Settings\" Partners should be CPC.\n PartnersTagDict should be CPC=TEST01.\n2. Open registry \" Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\CloudManagementDesktop\\Extension\\DiagnosticInfo\", the DeviceClientRegisterStatus should be \"Registered\""
+    },
+    {
+      "step": 2,
+      "action": "Enable \"Block iot\" firewall created in test case 22-1, then wait for 15-17 minutes. (If the wait time is more than 15 minutes, the wait time in step4 might be longer, but its ok to continue testing)",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "Open CMDExtension.log",
+      "expected": "1. There should be log: \"Connection status changed: status=Disconnected_Retrying, reason=Communication_Error\" and log: \"Connection status changed: status=Disconnected, reason=Retry_Expired\"\n2. There should be log\" Start to re-register\" and \"DeviceManager already started registering.\" and \"Dispose device client before create new one\""
+    },
+    {
+      "step": 4,
+      "action": "Disable \"Block iot\" firewall, wait for 1-2 minute. Check CMDExtension.log",
+      "expected": "1. There should be log \"Connection status changed: status=Connected, reason=Connection_Ok\" and \"DeviceClient created and opened successfully\""
+    },
+    {
+      "step": 5,
+      "action": "Enable \"Block iot\" firewall, wait for 1-15 minutes. (Must wait for less than 15 minutes) Then disable the firewall.",
+      "expected": ""
+    },
+    {
+      "step": 6,
+      "action": "Check CMDExtension.log",
+      "expected": "1. After step5's time, there should be log \"Connection status changed: status=Disconnected_Retrying, reason=Communication_Error\" at time1, and \"Connection status changed: status=Connected, reason=Connection_Ok\" at time2.\n2. No log \"Start to re-register\" during time1 and time2."
+    },
+    {
+      "step": 7,
+      "action": "Cleanup: uninstall agent",
+      "expected": ""
+    }
+  ]
+}

@@ -1,10 +1,9 @@
-import os
 import json
 import time
 from typing import Dict, Any, List
 
 from dotenv import load_dotenv
-from openai import AzureOpenAI
+from core.model_client import ModelClient
 
 ACTION_PROMPT_TEMPLATE = (
     "You are an expert Windows automation engineer. Given a test step's action description, "
@@ -31,68 +30,54 @@ VERIFY_PROMPT_TEMPLATE = (
 )
 
 
-def build_client() -> AzureOpenAI:
-    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    key = os.getenv("AZURE_OPENAI_API_KEY")
-    api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-08-01-preview")
-    if not endpoint or not key:
-        raise RuntimeError("Missing Azure OpenAI credentials in environment.")
-    return AzureOpenAI(azure_endpoint=endpoint, api_key=key, api_version=api_version)
-
-
-def _call_model(client: AzureOpenAI, deployment: str, system: str, user: str) -> str:
-    resp = client.chat.completions.create(
-        model=deployment,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-        temperature=0.0,
-        max_tokens=300
-    )
-    content = resp.choices[0].message.content.strip()
-    if content.startswith("```"):
-        lines = content.splitlines()
-        if len(lines) >= 2 and lines[-1].startswith("```"):
-            content = "\n".join(lines[1:-1]).strip()
-    return content
-
-
-def generate_scripts_for_step(client: AzureOpenAI, deployment: str, action: str, expected: str) -> Dict[str, str]:
+def generate_scripts_for_step(client: ModelClient, action: str, expected: str) -> Dict[str, str]:
+    """使用 ModelClient 生成 action 和 verify 脚本"""
     action_prompt = ACTION_PROMPT_TEMPLATE.format(action=action.strip())
-    action_script = _call_model(client, deployment, "You output only raw PowerShell.", action_prompt)
+    action_script = client.chat("You output only raw PowerShell.", action_prompt, max_tokens=300)
+    
     result = {"action_script": action_script}
+    
     if expected and expected.strip():
         verify_prompt = VERIFY_PROMPT_TEMPLATE.format(action=action.strip(), expected=expected.strip())
-        verify_script = _call_model(client, deployment, "You output only raw PowerShell.", verify_prompt)
+        verify_script = client.chat("You output only raw PowerShell.", verify_prompt, max_tokens=300)
         result["verify_script"] = verify_script
+    
     return result
 
 
 def enrich_test_case(input_path: str, output_path: str, rate_limit_sec: float = 1.0) -> Dict[str, Any]:
+    """读取测试用例 JSON，为每个步骤生成 PowerShell 脚本"""
     with open(input_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     steps: List[Dict[str, Any]] = data.get('steps', [])
-    client = build_client()
-    deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4.1")
-
+    client = ModelClient()
+    
     enriched_steps = []
-    for step_obj in steps:
+    for i, step_obj in enumerate(steps, 1):
         action = step_obj.get('action', '')
         expected = step_obj.get('expected', '')
+        
+        print(f"正在处理步骤 {i}/{len(steps)}: {action[:50]}...")
+        
         try:
-            scripts = generate_scripts_for_step(client, deployment, action, expected)
+            scripts = generate_scripts_for_step(client, action, expected)
         except Exception as e:
+            print(f"  ⚠️  生成失败: {e}")
             scripts = {"action_script": f"throw 'GENERATION_ERROR: {e}'"}
+        
         enriched = dict(step_obj)
         enriched['action_script'] = scripts['action_script']
         if 'verify_script' in scripts:
             enriched['verify_script'] = scripts['verify_script']
         enriched_steps.append(enriched)
+        
         time.sleep(rate_limit_sec)
 
     enriched_data = {
         "test_case_id": data.get("test_case_id"),
         "generated_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-        "model_deployment": deployment,
+        "model_deployment": client.deployment,
         "steps": enriched_steps
     }
 
@@ -104,16 +89,32 @@ def enrich_test_case(input_path: str, output_path: str, rate_limit_sec: float = 
 
 def main():
     import argparse
+    
     load_dotenv()
-    parser = argparse.ArgumentParser(description="Generate eshell PowerShell fragments for each test step.")
-    parser.add_argument('-i', '--input', default='34717304.json', help='Input test case JSON file')
-    parser.add_argument('-o', '--output', default='34717304.enriched.json', help='Output enriched JSON file')
-    parser.add_argument('--no-wait', action='store_true', help='Do not sleep between API calls')
+    
+    parser = argparse.ArgumentParser(
+        description="为测试用例的每个步骤生成 PowerShell 自动化脚本（使用无密钥 Azure AD 认证）"
+    )
+    parser.add_argument('-i', '--input', required=True, help='输入的测试用例 JSON 文件路径')
+    parser.add_argument('-o', '--output', help='输出的增强 JSON 文件路径（默认：输入文件名.enriched.json）')
+    parser.add_argument('--no-wait', action='store_true', help='不在 API 调用之间等待（可能触发限流）')
     args = parser.parse_args()
 
+    # 自动生成输出文件名
+    if not args.output:
+        input_name = args.input.replace('.json', '')
+        args.output = f"{input_name}.enriched.json"
+    
     wait = 0.0 if args.no_wait else 1.0
+    
+    print(f"📖 读取输入: {args.input}")
+    print(f"🔐 使用 Azure AD 无密钥认证")
+    print(f"⏱️  API 调用间隔: {wait}秒\n")
+    
     result = enrich_test_case(args.input, args.output, rate_limit_sec=wait)
-    print(f"Wrote {args.output} with {len(result.get('steps', []))} steps.")
+    
+    print(f"\n✅ 完成！已写入 {args.output}")
+    print(f"   生成了 {len(result.get('steps', []))} 个步骤的脚本")
 
 
 if __name__ == '__main__':

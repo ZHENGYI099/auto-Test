@@ -1,0 +1,76 @@
+{
+  "test_case_id": "case4test",
+  "test_scenario": "Check agent registration success at the first time and after cert deleted",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "Run command: msiexec /i cmdextension.msi SVCENV=Test",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Wait 5 minutes, and go to validation",
+      "expected": ""
+    },
+    {
+      "step": 5,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs. \nOpen “CMDExtension.log”",
+      "expected": "Verify below contents are in the log.\n\n·     “DeviceClient created and opened successfully”\n\nVerify below contents are not in the log.\n\n·     “Failed to create instance for plugin”"
+    },
+    {
+      "step": 6,
+      "action": "Press “Win + R” keys, type “wbemtest” and press Enter. \nClick on “Connect”, type “root\\cmd\\clientagent” and press Enter. \nClick on “Enum Instances”, type “SchedulerEntity” and press Enter.",
+      "expected": "Verify the list of instances is NOT empty.S"
+    },
+    {
+      "step": 7,
+      "action": "Open registry (Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\CloudManagementDesktop\\Extension\\Settings for x86, Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\CloudManagementDesktop\\Extension\\Settings for x64), if the DeviceRegistrationType is Certificate, continue the test. Otherwise go to \"Test Cleanup\"",
+      "expected": ""
+    },
+    {
+      "step": 8,
+      "action": "Run command \"certlm\"",
+      "expected": ""
+    },
+    {
+      "step": 9,
+      "action": "Open Certificates - Local Computer - Personal - Certificates, find the cert \"Issued To\" and \"Issued By\" value is {tenantId.aadDeviceId}. (Attached the screenshot in Discussion)",
+      "expected": ""
+    },
+    {
+      "step": 10,
+      "action": "Right click on the cert, and delete it.",
+      "expected": ""
+    },
+    {
+      "step": 11,
+      "action": "Go to Service panel, restart \"Microsoft Cloud Managed Desktop Extension\"",
+      "expected": ""
+    },
+    {
+      "step": 12,
+      "action": "Check “CMDExtension.log”",
+      "expected": "Verify there are logs after restart: \"Clear iot connection info success\" and \"RegisterDeviceToHermesAsync starts\" and \"DeviceClient created and opened successfully\""
+    },
+    {
+      "step": 13,
+      "action": "Right click and refresh Certificate, the the cert \"Issued To\" and \"Issued By\" value is {tenantId.aadDeviceId} should be created again",
+      "expected": ""
+    },
+    {
+      "step": 14,
+      "action": "Test Cleanup:\nIn the same powershell window as “Step 3”, run command: msiexec /x cmdextension.msi",
+      "expected": ""
+    }
+  ]
+}

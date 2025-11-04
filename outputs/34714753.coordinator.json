@@ -1,0 +1,95 @@
+{
+  "test_case_id": "testcase-34714753",
+  "generated_at": "2025-10-13T06:34:24Z",
+  "model_deployment": "gpt-4.1",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Apply to all devices.",
+      "expected": "",
+      "action_script": "",
+      "verify_script": null,
+      "need_vision_verify": false
+    },
+    {
+      "step": 2,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates,cmdextension.msi locates in C:\\VMShare",
+      "expected": "",
+      "action_script": "Start-Process explorer.exe -ArgumentList 'C:\\VMShare'",
+      "verify_script": null,
+      "need_vision_verify": false
+    },
+    {
+      "step": 3,
+      "action": "In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+      "expected": "",
+      "action_script": "Start-Process powershell.exe -Verb RunAs -WorkingDirectory '(not set)'",
+      "verify_script": null,
+      "need_vision_verify": false
+    },
+    {
+      "step": 4,
+      "action": "Run command: msiexec /i cmdextension.msi /qn+",
+      "expected": "The prompt window should pop up: Title is “Microsoft Cloud Manage Desktop Extension”, and Message is “Microsoft Cloud Managed Desktop Extension Setup completed successfully.”\n\nIf the step failed, run: msiexec /i cmdextension.msi /qn+ /l*v mylog. Send mylog to CMD Agent team for troubleshooting",
+      "action_script": "Start-Process msiexec.exe -ArgumentList '/i cmdextension.msi /qn+' -Wait",
+      "verify_script": "throw 'MANUAL_CHECK'",
+      "need_vision_verify": true
+    },
+    {
+      "step": 5,
+      "action": "Open “Control Panel -> Programs -> Uninstall a program”",
+      "expected": "Verify “Microsoft Cloud Managed Desktop Extension” is present in the list of installed programs.",
+      "action_script": "Start-Process \"control.exe\" -ArgumentList \"appwiz.cpl\"",
+      "verify_script": "if (Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Where-Object { $_.DisplayName -eq 'Microsoft Cloud Managed Desktop Extension' }) { exit 0 } else { exit 1 }",
+      "need_vision_verify": false
+    },
+    {
+      "step": 6,
+      "action": "Open “Task Manager -> Services”",
+      "expected": "Verify “CloudManagedDesktopExtension”\nis in running state.",
+      "action_script": "Start-Process taskmgr",
+      "verify_script": "if ((Get-Service -Name 'CloudManagedDesktopExtension' -ErrorAction SilentlyContinue) -and ((Get-Service -Name 'CloudManagedDesktopExtension').Status -eq 'Running')) {exit 0} else {exit 1}",
+      "need_vision_verify": false
+    },
+    {
+      "step": 7,
+      "action": "Press “Win + R” keys, type “services.msc” and press Enter.",
+      "expected": "Verify “Microsoft Cloud Managed Desktop Extension” - Status is “Running”, Startup Type is “Automatic (Delayed Start)”, and Log On As is “Local System”.",
+      "action_script": "Start-Process services.msc",
+      "verify_script": "$s=(Get-Service -Name 'CloudManagedDesktopExtension' -ErrorAction SilentlyContinue); if($s -and $s.Status -eq 'Running'){ $wmi=Get-WmiObject -Class Win32_Service -Filter \"Name='CloudManagedDesktopExtension'\"; if($wmi -and $wmi.StartMode -eq 'Delayed Auto' -and $wmi.StartName -eq 'LocalSystem'){ exit 0 } else { exit 1 } } else { exit 1 }",
+      "need_vision_verify": false
+    },
+    {
+      "step": 8,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs.",
+      "expected": "Verify “CMDExtension.log” is present.",
+      "action_script": "Start-Process explorer.exe -ArgumentList \"$env:ProgramData\\Microsoft\\CMDExtension\\Logs\"",
+      "verify_script": "Test-Path \"$env:ProgramData\\Microsoft\\CMDExtension\\Logs\\CMDExtension.log\" | %{ if ($_){exit 0}else{exit 1} }",
+      "need_vision_verify": false
+    },
+    {
+      "step": 9,
+      "action": "Press “Win + R” keys, type “taskschd.msc” and press Enter. Open “Task scheduler library -> Microsoft -> CMD”",
+      "expected": "Verify “Cloud Managed Desktop Extension Health Evaluation” is present.",
+      "action_script": "Start-Process taskschd.msc",
+      "verify_script": "if (Get-ScheduledTask -TaskPath '\\Microsoft\\CMD\\' -TaskName 'Cloud Managed Desktop Extension Health Evaluation' -ErrorAction SilentlyContinue) {exit 0} else {exit 1}",
+      "need_vision_verify": false
+    },
+    {
+      "step": 10,
+      "action": "Press “Win + R” keys, type “wbemtest” and press Enter. Click on “Connect”, type “root\\cmd\\clientagent” and press Enter.",
+      "expected": "Verify there is NOT error prompt window which displays “Invalid namespace”.",
+      "action_script": "Start-Process wbemtest",
+      "verify_script": "throw 'MANUAL_CHECK'",
+      "need_vision_verify": true
+    },
+    {
+      "step": 11,
+      "action": "Test Cleanup:\n\n\nIn the same PowerShell window as “Step 3”, run command: msiexec /x cmdextension.msi",
+      "expected": "",
+      "action_script": "Set-Location -LiteralPath '(not set)'; msiexec /x cmdextension.msi",
+      "verify_script": null,
+      "need_vision_verify": false
+    }
+  ]
+}

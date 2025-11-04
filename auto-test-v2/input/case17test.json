@@ -1,0 +1,61 @@
+{
+  "test_case_id": "case17test",
+  "test_scenario": "Check agent registration when network issue",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Open Windows defender firewall and click Advanced settings",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Click Outbound Rules -> New Rule -> Rule Type choose Port -> Select TCP and Specific local ports set to 5671 -> Select \"Block the connection\" in Action -> Name it as \"Block amqp\" and click \"finish\"",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "Restart \"Microsoft Cloud Managed Desktop Extension\" in service panel if it didn't be uninstalled, or Reinstall the agent by command: msiexec /i cmdextension.msi SVCENV=Test",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Check \"CMDExtension.log\"",
+      "expected": "There should be a log \"DeviceClient created and opened successfully\" after step 3."
+    },
+    {
+      "step": 5,
+      "action": "Stop \"Microsoft Cloud Managed Desktop Extension\" in service panel",
+      "expected": ""
+    },
+    {
+      "step": 6,
+      "action": "Click Outbound Rules -> New Rule -> Rule Type choose Port -> Select TCP and Specific local ports set to 443 -> Select \"Block the connection\" in Action -> Name it as \"Block https\" and click \"finish\"",
+      "expected": ""
+    },
+    {
+      "step": 7,
+      "action": "Start \"Microsoft Cloud Managed Desktop Extension\" in service panel and wait for 35 minutes.",
+      "expected": ""
+    },
+    {
+      "step": 8,
+      "action": "Check \"CMDExtension.log\"",
+      "expected": "There should be several logs \"Connect to IoTHub failed with a generic exception\" after step7"
+    },
+    {
+      "step": 9,
+      "action": "Go to  \"Windows Defender Firewall with Advanced Security\" panel, right click on \"Block https\" to disable it and wait for 10 minutes",
+      "expected": ""
+    },
+    {
+      "step": 10,
+      "action": "Check \"CMDExtension.log\"",
+      "expected": "There should be a log \"DeviceClient created and opened successfully\" after step 9."
+    },
+    {
+      "step": 11,
+      "action": "Test Cleanup:\n\n\nDisable or delete Outboud rules \"Block amqp\" \"Block https\". If you disable it, step2 and step 6 can be updated to enable the rule instead of create it in next time.",
+      "expected": ""
+    }
+  ]
+}

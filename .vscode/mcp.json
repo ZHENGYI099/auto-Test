@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "simple-mcp-server": {
+      "command": "C:\\Users\\v-yizheng1\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "args": ["d:\\auto-TEST\\mcp_server.py"]
+    }
+  }
+}

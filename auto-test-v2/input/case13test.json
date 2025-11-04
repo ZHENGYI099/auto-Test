@@ -1,0 +1,71 @@
+{
+  "test_case_id": "case13test",
+  "test_scenario": "Check agent registration with invalid cache and retry success",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Install client agent with command msiexec /i cmdextension.msi SVCENV=\"Test\"",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs.",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs.",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Press “Win + R” keys, type “services.msc” and press Enter. Right click on “Microsoft Cloud Managed Desktop Extension -> Restart”",
+      "expected": ""
+    },
+    {
+      "step": 5,
+      "action": "Check log file \"CMDExtension.log\", there should have log \"Hit iot connection info cache\" after Datetime {time},  and \"DeviceClient created and opened successfully\"",
+      "expected": ""
+    },
+    {
+      "step": 6,
+      "action": "In services panel, right click on “Microsoft Cloud Managed Desktop Extension -> Stop”",
+      "expected": ""
+    },
+    {
+      "step": 7,
+      "action": "Open registry editor. Go to path \"Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\CloudManagementDesktop\\Extension\\Settings\" for x64, \"Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\CloudManagementDesktop\\Extension\\Settings\" for x86",
+      "expected": ""
+    },
+    {
+      "step": 8,
+      "action": "Right click on \"IoTHostName\" on \"Modify\" and update the value to \"foo-device.net\"",
+      "expected": ""
+    },
+    {
+      "step": 9,
+      "action": "In services panel, right click on “Microsoft Cloud Managed Desktop Extension -> Start” and wait for 25 minutes.",
+      "expected": ""
+    },
+    {
+      "step": 10,
+      "action": "Check log file \"CMDExtension.log\", there are more than 1 timesof log \"IoTHostName: foo-device.net\" and then \"DeviceClient created and opened successfully\"",
+      "expected": ""
+    },
+    {
+      "step": 11,
+      "action": "Right click on \"IoTDeviceId\" on \"Modify\" and update the value to \"fooDeviceId\". In services panel, right click on “Microsoft Cloud Managed Desktop Extension -> Restart” and wait for 10 minute",
+      "expected": ""
+    },
+    {
+      "step": 12,
+      "action": "Check log file \"CMDExtension.log\"",
+      "expected": "1. There should be some logs: \"errorCode\":401002\" or \"DeviceNotFoundException\" or \"status-code: 404\" exception or \"Exception on RegisterAsync\". \n\n2. There should be a \"Update IoTDeviceId to\" and \"DeviceClient created and opened successfully\" after the exceptions in #1"
+    },
+    {
+      "step": 13,
+      "action": "Test Cleanup:\n\n\n run command: msiexec /x cmdextension.msi",
+      "expected": ""
+    }
+  ]
+}

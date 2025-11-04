@@ -1,0 +1,19 @@
+﻿# Test Scenario: Check agent registration failure when environment is not correct
+Steps,Action,Expect result
+1,"Apply to “20H2” and ""Win11"" devices.",
+2,"Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+3,"Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+4,Run command: msiexec /i cmdextension.msi SVCENV=PreProduction,
+5,"Wait 3 minutes, and go to validation",
+6,"Open file explorer, go to %ProgramData%\Microsoft\CMDExtension\Logs. 
+Open “CMDExtension.log”","1. Verify there are failure logs and retry attempts.
+
+·     “InvalidHttpResponse. StatusCode: 401”
+2. There is no plugin logs (Such as HeartbeatPlugin.log)"
+7,"Press “Win + R” keys, type “wbemtest” and press Enter. 
+Click on “Connect”, type “root\cmd\clientagent” and press Enter. 
+Click on “Enum Instances”, type “SchedulerEntity” and press Enter.",Verify the list of instances is empty.
+8,"Test Cleanup:
+
+
+In the same powershell window as “Step 3”, run command: msiexec /x cmdextension.msi",

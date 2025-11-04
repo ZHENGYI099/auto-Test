@@ -1,0 +1,26 @@
+﻿# Test Scenario: Check guardian task
+Steps,Action,Expect result
+1,Apply to all devices.,
+2,"Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+3,"In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+4,Run command: msiexec /i cmdextension.msi /qn,
+5,"Validation A:
+Press “Win + R” keys, type “taskschd.msc” and press Enter. 
+Open “Task scheduler library -> Microsoft -> CMD”, right click on “Cloud Managed Desktop Extension Health Evaluation -> Run”, refresh",Verify Last Run Result is “The operation completed successfully”.
+6,"Open file explorer, go to %ProgramData%\Microsoft\CMDExtension\Logs.","Verify “ClientHealth.log”, and verify below logs are printed with timestamp.
+The client health report : [{""ID"":""a2f3177d-1f1d-4580-8b30-1eb4e8c0da69"",""RuleEvaluationResult"":""Pass"",""ResultDetails"":null},{""ID"":""489f82c9-5b8f-4a71-aa51-109a1919b76b"",""RuleEvaluationResult"":""Pass"",""ResultDetails"":null},{""ID"":""88d25de5-34da-4d58-9240-1d8e914ec641"",""RuleEvaluationResult"":""Pass"",""ResultDetails"":null},{""ID"":""ad14a7c7-fd00-4820-a99f-fa561ff96c8f"",""RuleEvaluationResult"":""Fail"",""ResultDetails"":""Registry not found, it may be happened on agent installing/upgrading.""}] ."
+7,"Press “Win + R” keys, type “services.msc” and press Enter. Right click on “Microsoft Cloud Managed Desktop Extension -> Stop”, then rerun guardian task like “Validation A”.",
+8,"Open file explorer, go to %ProgramData%\Microsoft\CMDExtension\Logs.","Verify “ClientHealth.log”, and verify below logs are printed with timestamp.
+
+·     Service is not running, current status is Stopped
+·     After trying remediation, current status is Running
+·     Summary: rule Verify/Remediate CMD Client Agent service running status. with ID 489f82c9-5b8f-4a71-aa51-109a1919b76b, result = PassAfterRemediation"
+9,"Press “Win + R” keys, type “services.msc” and press Enter. Right click on “Microsoft Cloud Managed Desktop Extension -> Properties”, set ""Startup type"" as ""Disabled"" under General tab, then click ""Apply"". In the end, rerun guardian task like “Validation A”.",
+10,"Open file explorer, go to %ProgramData%\Microsoft\CMDExtension\Logs.","Verify “ClientHealth.log”, and verify below logs are printed with timestamp.
+
+·     Service startup type is not automatic, current startup type is Disabled
+·     Set service startMode to delayed automatic.
+·     Summary: rule Verify/Remediate CMD Client Agent Service startup type. with ID 88d25de5-34da-4d58-9240-1d8e914ec641, result = PassAfterRemediation"
+11,"Test Cleanup:
+
+In the same powershell window as “Step 3”, run command: msiexec /x cmdextension.msi",
