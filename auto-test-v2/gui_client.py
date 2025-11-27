@@ -701,74 +701,11 @@ class AutoTestGUI:
             
             self.output_queue.put(("progress", 100))
             
-            # Generate HTML Report with AI Analysis
+            # Test execution completed - enable manual report generation
             self.output_queue.put(("log", "━" * 60, "info"))
-            self.output_queue.put(("log", "📄 Generating HTML report with AI analysis...", "info"))
-            
-            try:
-                # Find the log file
-                script_dir = Path(script_path).parent
-                log_dir = script_dir.parent / "output" / "logs"
-                
-                log_content = ""
-                if log_dir.exists():
-                    log_files = sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
-                    if log_files:
-                        latest_log = log_files[0]
-                        self.output_queue.put(("log", f"   Found log: {latest_log.name}", "info"))
-                        
-                        # Try multiple encodings (PowerShell transcripts often use UTF-16 LE)
-                        encodings = ['utf-16-le', 'utf-16', 'utf-8', 'gbk', 'latin-1']
-                        for encoding in encodings:
-                            try:
-                                with open(latest_log, 'r', encoding=encoding) as f:
-                                    log_content = f.read()
-                                self.output_queue.put(("log", f"   Encoding detected: {encoding}", "debug"))
-                                break
-                            except (UnicodeDecodeError, UnicodeError):
-                                continue
-                        else:
-                            # If all encodings fail, read as binary and decode with errors='replace'
-                            self.output_queue.put(("log", "⚠️ Using fallback encoding with error replacement", "warning"))
-                            with open(latest_log, 'r', encoding='utf-8', errors='replace') as f:
-                                log_content = f.read()
-                        
-                        self.latest_log_file = str(latest_log)
-                
-                # If no log file found, use GUI output
-                if not log_content:
-                    self.output_queue.put(("log", "⚠️ No PowerShell transcript found, using GUI log", "warning"))
-                    log_content = self.output_text.get(1.0, tk.END)
-                
-                # Generate HTML report with AI analysis
-                report_gen = ReportGenerator()
-                
-                self.output_queue.put(("log", "🤖 AI analyzing logs...", "info"))
-                ai_analysis = report_gen.analyze_logs_with_ai(
-                    logs=log_content,
-                    test_case_id=self.test_case_id.get() or Path(script_path).stem
-                )
-                
-                report_path = report_gen.generate_html_report(
-                    test_case_id=self.test_case_id.get() or Path(script_path).stem,
-                    script_path=script_path,
-                    logs=log_content,
-                    ai_analysis=ai_analysis,
-                    quality_evaluation=self.last_evaluation,
-                    timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                )
-                
-                self.latest_report_path = report_path
-                self.output_queue.put(("log", f"✅ HTML report generated: {Path(report_path).name}", "success"))
-                self.output_queue.put(("log", f"   Path: {report_path}", "info"))
-                self.output_queue.put(("log", "   Click [View Report] button to open in browser", "success"))
-                self.output_queue.put(("enable_view_report", True))
-                
-            except Exception as e:
-                self.output_queue.put(("log", f"⚠️ Auto report generation failed: {str(e)}", "warning"))
-                self.output_queue.put(("log", "💡 You can use [Generate Report] button to retry manually", "info"))
-                import traceback
-                self.output_queue.put(("log", traceback.format_exc(), "error"))
+            self.output_queue.put(("log", "✅ Test execution completed", "success"))
+            self.output_queue.put(("log", "💡 Click [Generate Report] button to create HTML report with AI analysis", "info"))
+            self.output_queue.put(("log", "━" * 60, "info"))
             
             # Always enable manual report generation button after test runs
             self.output_queue.put(("enable_gen_report", True))

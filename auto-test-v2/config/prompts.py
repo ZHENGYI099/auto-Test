@@ -162,7 +162,7 @@ Examples:
 4. **DO NOT add "common sense" checks** not explicitly mentioned
 5. **Each verification MUST map to specific text in "Expect result" column**
 
-🚫 FORBIDDEN BEHAVIORS (Will cause test failures):
+ FORBIDDEN BEHAVIORS (Will cause test failures):
 -  Skipping or shortening "Wait X minutes" commands in Action column
 -  Replacing explicit waits with "wait for condition" logic (unless specified)
 -  Adding WMI checks after install if not in "Expect result"
@@ -172,7 +172,7 @@ Examples:
 -  Extrapolating from install phase to add checks in cleanup phase
 -  Assuming "if we check X after install, we should check X after uninstall"
 
-✅ CORRECT APPROACH:
+ CORRECT APPROACH:
 - Read "Expect result" column for EACH step
 - If "Expect result" is empty → Execute action, NO verification code
 - If "Expect result" has text → Add verification for THAT TEXT ONLY
@@ -258,7 +258,7 @@ CRITICAL RULES FOR MSI PROPERTY READING:
 CRITICAL - UNIVERSAL STRING COMPARISON RULES:
 **GOLDEN RULE**: ALL strings from external sources (registry, files, MSI, WMI, etc.) MUST be trimmed before comparison.
 
-🚨 CRITICAL EXCEPTION - Service Status is an ENUM, NOT a String! 
+ CRITICAL EXCEPTION - Service Status is an ENUM, NOT a String! 
 Get-Service returns Status as ServiceControllerStatus ENUM. Enums do NOT have .Trim() method!
 -  ABSOLUTELY WRONG: $svc.Status.Trim() → RUNTIME ERROR!
 -  ABSOLUTELY WRONG: ($svc.Status.Trim() -eq "Running") → WILL CRASH!
@@ -266,7 +266,7 @@ Get-Service returns Status as ServiceControllerStatus ENUM. Enums do NOT have .T
 -  CORRECT: $svc.Status.ToString().Trim() -eq "Running" → Convert to string first
 -  CORRECT: ($svc.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Running)
 
-⚠️ NEVER call .Trim() on ANY enum type (Service.Status, Process.PriorityClass, etc.)
+ NEVER call .Trim() on ANY enum type (Service.Status, Process.PriorityClass, etc.)
 
 **Standard pattern for strings (Check null → Trim → Compare)**:
 ```powershell
@@ -362,12 +362,12 @@ Generate a complete, executable PowerShell script with:
 CRITICAL - AVOID SYNTAX ERRORS IN STRINGS:
 **NEVER put colon (:) immediately after a variable in strings - this causes SYNTAX ERROR!**
 
-❌ WRONG patterns (cause script crash):
+ WRONG patterns (cause script crash):
 - "Error $name: details" → $name: treated as drive reference (BREAKS!)
 - "Exception checking $serviceName: $($_.Message)" → STILL BREAKS!
 - catch {{{{ Write-Host "Error: $_" }}}} → BREAKS!
 
-✅ CORRECT patterns (use dash - instead):
+ CORRECT patterns (use dash - instead):
 - "Error $name - details"
 - "Exception checking $serviceName - $($_.Exception.Message)"
 - catch {{{{ Write-Host "Error - $($_.Exception.Message)" }}}}
@@ -505,8 +505,8 @@ VERIFICATION COMPLETENESS:
 STRING COMPARISON VALIDATION:
 - [ ] ALL external string values are trimmed before comparison
 - [ ] 🚨 CRITICAL: Service.Status is ENUM - NEVER use .Trim() on it!
-  - ❌ Check for: $svc.Status.Trim() → This is a BUG!
-  - ✅ Must be: ($svc.Status -eq "Running") or $svc.Status.ToString()
+  -  Check for: $svc.Status.Trim() → This is a BUG!
+  -  Must be: ($svc.Status -eq "Running") or $svc.Status.ToString()
 - [ ] Registry values: Check null → Trim → Compare
 - [ ] File versions: Check null → Trim → Compare
 - [ ] File content: Check null → Trim → Compare
