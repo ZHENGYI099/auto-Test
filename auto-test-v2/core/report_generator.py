@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
 from .model_client import ModelClient
+from config.prompts import LOG_ANALYSIS_PROMPT
 
 
 class ReportGenerator:
@@ -32,16 +33,6 @@ class ReportGenerator:
         Returns:
             AI-generated analysis and summary
         """
-        system_prompt = """You are an expert test automation analyst. 
-Analyze PowerShell test execution logs and provide:
-1. Overall test result (PASS/FAIL)
-2. Key findings and observations
-3. Failed checks with probable causes
-4. Warnings or potential issues
-5. Recommendations
-
-Be concise and actionable. Use bullet points. Respond in English."""
-
         user_prompt = f"""Analyze these test execution logs:
 
 TEST CASE: {test_case_id}
@@ -53,7 +44,7 @@ Provide a clear analysis in English."""
 
         try:
             analysis = self.model_client.generate(
-                system_prompt=system_prompt,
+                system_prompt=LOG_ANALYSIS_PROMPT,
                 user_prompt=user_prompt,
                 temperature=0.3,
                 max_tokens=2000

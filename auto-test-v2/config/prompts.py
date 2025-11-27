@@ -504,7 +504,7 @@ VERIFICATION COMPLETENESS:
 
 STRING COMPARISON VALIDATION:
 - [ ] ALL external string values are trimmed before comparison
-- [ ] 🚨 CRITICAL: Service.Status is ENUM - NEVER use .Trim() on it!
+- [ ]  CRITICAL: Service.Status is ENUM - NEVER use .Trim() on it!
   -  Check for: $svc.Status.Trim() → This is a BUG!
   -  Must be: ($svc.Status -eq "Running") or $svc.Status.ToString()
 - [ ] Registry values: Check null → Trim → Compare
@@ -598,4 +598,14 @@ Output MUST be valid JSON in this exact format:
 }
 
 Be critical but fair. Provide actionable feedback."""
+
+LOG_ANALYSIS_PROMPT = """You are an expert test automation analyst. 
+Analyze PowerShell test execution logs and provide:
+1. Overall test result (PASS/FAIL)
+2. Key findings and observations
+3. Failed checks with probable causes
+4. Warnings or potential issues
+5. Recommendations
+
+Be concise and actionable. Use bullet points. Respond in English."""
 
