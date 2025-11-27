@@ -1,0 +1,46 @@
+{
+  "test_case_id": "case5",
+  "test_scenario": "Check agent registration failure when environment is not correct",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Apply to “20H2” and \"Win11\" devices.",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Run command: msiexec /i cmdextension.msi SVCENV=PreProduction",
+      "expected": ""
+    },
+    {
+      "step": 5,
+      "action": "Wait 3 minutes, and go to validation",
+      "expected": ""
+    },
+    {
+      "step": 6,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs. \nOpen “CMDExtension.log”",
+      "expected": "1. Verify there are failure logs and retry attempts.\n\n·     “InvalidHttpResponse. StatusCode: 401”\n2. There is no plugin logs (Such as HeartbeatPlugin.log)"
+    },
+    {
+      "step": 7,
+      "action": "Press “Win + R” keys, type “wbemtest” and press Enter. \nClick on “Connect”, type “root\\cmd\\clientagent” and press Enter. \nClick on “Enum Instances”, type “SchedulerEntity” and press Enter.",
+      "expected": "Verify the list of instances is empty."
+    },
+    {
+      "step": 8,
+      "action": "Test Cleanup:\n\n\nIn the same powershell window as “Step 3”, run command: msiexec /x cmdextension.msi",
+      "expected": ""
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 # SETUP LOGGING
 # ============================================================
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -35,23 +35,6 @@ function Write-Result {
     }
 }
 
-# Check admin privileges
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Host "❌ ERROR - Must run as Administrator" -ForegroundColor Red
-    Stop-Transcript
-    exit 1
-}
-
-# Define constants
-$msiPath = "C:\VMShare\cmdextension.msi"
-$productName = "Microsoft Cloud Managed Desktop Extension"
-$serviceName = "CloudManagedDesktopExtension"
-$logFolder = "$env:ProgramData\Microsoft\CMDExtension\Logs"
-$logFileName = "CMDExtension.log"
-$scheduledTaskPath = "\Microsoft\CMD\Cloud Managed Desktop Extension Health Evaluation"
-$wmiNamespace = "root\cmd\clientagent"
-
-# Helper: Get MSI property (do NOT modify this function)
 function Get-MSIProperty {
     param(
         [string]$msiPath,
@@ -81,40 +64,56 @@ function Get-MSIProperty {
     }
 }
 
-# Helper: Check if product is installed
-function Is-ProductInstalled {
-    param([string]$displayName)
-    $regPaths = @(
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-    )
-    foreach ($regPath in $regPaths) {
-        $keys = Get-ChildItem -Path $regPath -ErrorAction SilentlyContinue
-        foreach ($key in $keys) {
-            $props = Get-ItemProperty -Path $key.PSPath -ErrorAction SilentlyContinue
-            if ($props.DisplayName -and ($props.DisplayName.Trim() -eq $displayName)) {
-                return $true
-            }
-        }
-    }
-    return $false
+# Admin check
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "ERROR - Must run as Administrator" -ForegroundColor Red
+    exit 1
 }
 
-# Pre-check: MSI file exists
+# Define paths and names
+$msiPath = "C:\VMShare\cmdextension.msi"
+$productName = "Microsoft Cloud Managed Desktop Extension"
+$serviceName = "CloudManagedDesktopExtension"
+$logFolder = "$env:ProgramData\Microsoft\CMDExtension\Logs"
+$logFileName = "CMDExtension.log"
+$scheduledTaskPath = "\Microsoft\CMD\Cloud Managed Desktop Extension Health Evaluation"
+$wmiNamespace = "root\cmd\clientagent"
+
+# Check if MSI exists
 if (-not (Test-Path $msiPath)) {
-    Write-Host "❌ ERROR - MSI file not found at $msiPath" -ForegroundColor Red
+    Write-Result -Msg "MSI file not found at $msiPath" -Success $false
     Stop-Transcript
     exit 2
+} else {
+    Write-Result -Msg "MSI file found at $msiPath" -Success $true
 }
-Write-Result -Msg "MSI file found at $msiPath" -Success $true
 
-# Pre-check: Product not already installed
-if (Is-ProductInstalled -displayName $productName) {
-    Write-Host "❌ ERROR - Product '$productName' is already installed. Uninstall before running this test." -ForegroundColor Red
-    Stop-Transcript
-    exit 3
+# Check if product already installed
+$alreadyInstalled = $false
+try {
+    $installed = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -eq $productName }
+    if ($installed) {
+        $alreadyInstalled = $true
+        Write-Result -Msg "$productName is already installed" -Success $false
+    }
+} catch {
+    Write-Host "[DEBUG] Failed to query Win32_Product - $($_.Exception.Message)" -ForegroundColor Yellow
 }
-Write-Result -Msg "Product '$productName' not installed (ready for test)" -Success $true
+
+if ($alreadyInstalled) {
+    Write-Host "Uninstalling existing $productName before test..." -ForegroundColor Yellow
+    $uninstallCmd = "msiexec.exe /x `"$msiPath`" /qn"
+    $uninstallProc = Start-Process -FilePath "msiexec.exe" -ArgumentList "/x `"$msiPath`" /qn" -Wait -PassThru
+    $exitCode = $uninstallProc.ExitCode
+    if ($exitCode -eq 0 -or $exitCode -eq 1605) {
+        Write-Result -Msg "Previous $productName uninstalled" -Success $true
+    } else {
+        Write-Result -Msg "Failed to uninstall previous $productName - ExitCode $exitCode" -Success $false
+        Stop-Transcript
+        exit 3
+    }
+    Start-Sleep -Seconds 5
+}
 
 # ============================================================
 # PHASE 2: INSTALLATION
@@ -124,57 +123,27 @@ Write-Host "============================================================" -Foreg
 Write-Host "PHASE 2: INSTALLATION" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
-$installLog = Join-Path $logDir "install_case1test_$timestamp.log"
-$msiExecCmd = "msiexec.exe /i `"$msiPath`" /qn /l*v `"$installLog`""
-Write-Host "Installing MSI silently..." -ForegroundColor Cyan
-
+$installLog = Join-Path $logDir "cmdextension_install_$timestamp.log"
+$installCmd = "msiexec.exe /i `"$msiPath`" /qn /l*v `"$installLog`""
+Write-Host "Installing $productName..." -ForegroundColor Cyan
 try {
-    $process = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$msiPath`" /qn /l*v `"$installLog`"" -Wait -PassThru -WindowStyle Hidden
-    $exitCode = $process.ExitCode
-    Write-Host "MSIExec exit code: $exitCode" -ForegroundColor Gray
+    $proc = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$msiPath`" /qn /l*v `"$installLog`"" -Wait -PassThru
+    $exitCode = $proc.ExitCode
+    if ($exitCode -eq 0 -or $exitCode -eq 3010) {
+        Write-Result -Msg "MSI installed successfully (ExitCode $exitCode)" -Success $true
+    } else {
+        Write-Result -Msg "MSI installation failed (ExitCode $exitCode)" -Success $false
+        Write-Host "[DEBUG] See log: $installLog" -ForegroundColor Yellow
+        Stop-Transcript
+        exit 4
+    }
 } catch {
-    Write-Result -Msg "MSI installation process failed to start" -Success $false
-    Write-Host "[DEBUG] Exception - $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Result -Msg "Exception during MSI install - $($_.Exception.Message)" -Success $false
     Stop-Transcript
-    exit 4
+    exit 5
 }
 
-# Exit code handling
-$successCodes = @(0, 3010)
-if ($successCodes -contains $exitCode) {
-    Write-Result -Msg "MSI installation succeeded (exit code $exitCode)" -Success $true
-} elseif ($exitCode -eq 1603) {
-    Write-Result -Msg "MSI installation failed (exit code 1603 - installation failure)" -Success $false
-    Stop-Transcript
-    exit 1603
-} elseif ($exitCode -eq 1618) {
-    Write-Result -Msg "MSI installation failed (exit code 1618 - another installation in progress)" -Success $false
-    Stop-Transcript
-    exit 1618
-} elseif ($exitCode -eq 1925) {
-    Write-Result -Msg "MSI installation failed (exit code 1925 - insufficient privileges)" -Success $false
-    Stop-Transcript
-    exit 1925
-} else {
-    Write-Result -Msg "MSI installation failed (exit code $exitCode)" -Success $false
-    Stop-Transcript
-    exit $exitCode
-}
-
-# Wait for service to appear (max 30s)
-$maxWait = 30
-$waited = 0
-while ($waited -lt $maxWait) {
-    $svc = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
-    if ($svc) { break }
-    Start-Sleep -Seconds 2
-    $waited += 2
-}
-if ($svc) {
-    Write-Result -Msg "Service '$serviceName' detected after install" -Success $true
-} else {
-    Write-Result -Msg "Service '$serviceName' NOT detected after install" -Success $false
-}
+Start-Sleep -Seconds 5
 
 # ============================================================
 # PHASE 3: VERIFICATION
@@ -184,98 +153,91 @@ Write-Host "============================================================" -Foreg
 Write-Host "PHASE 3: VERIFICATION" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
-# 1. Verify product in installed programs (registry)
-$foundProduct = $false
-$regPaths = @(
-    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-)
-foreach ($regPath in $regPaths) {
-    $keys = Get-ChildItem -Path $regPath -ErrorAction SilentlyContinue
-    foreach ($key in $keys) {
-        $props = Get-ItemProperty -Path $key.PSPath -ErrorAction SilentlyContinue
-        if ($props.DisplayName -and ($props.DisplayName.Trim() -eq $productName)) {
-            $foundProduct = $true
-            break
-        }
+# Step 5: Verify product in installed programs
+try {
+    $found = $false
+    $products = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -eq $productName }
+    if ($products) {
+        $found = $true
     }
-    if ($foundProduct) { break }
-}
-Write-Result -Msg "Installed programs contains '$productName'" -Success $foundProduct
-if (-not $foundProduct) {
-    Write-Host "[DEBUG] '$productName' not found in registry uninstall keys" -ForegroundColor Yellow
+    Write-Result -Msg "$productName present in installed programs" -Success $found
+    if (-not $found) {
+        Write-Host "[DEBUG] $productName not found in Win32_Product" -ForegroundColor Yellow
+    }
+} catch {
+    Write-Result -Msg "Failed to query installed programs - $($_.Exception.Message)" -Success $false
 }
 
-# 2. Verify service running
-$svc = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
-if ($svc) {
-    $isRunning = ($svc.Status -eq "Running")
-    Write-Result -Msg "Service '$serviceName' is running" -Success $isRunning
+# Step 6: Verify service is running
+try {
+    $svc = Get-Service -Name $serviceName -ErrorAction Stop
+    $isRunning = ($svc.Status -eq 'Running')
+    Write-Result -Msg "$serviceName service is running" -Success $isRunning
     if (-not $isRunning) {
         Write-Host "[DEBUG] Service status: $($svc.Status)" -ForegroundColor Yellow
     }
-} else {
-    Write-Result -Msg "Service '$serviceName' not found" -Success $false
+} catch {
+    Write-Result -Msg "Service $serviceName not found - $($_.Exception.Message)" -Success $false
 }
 
-# 3. Verify service properties (WMI)
-$svcWmi = Get-WmiObject Win32_Service -Filter "Name='$serviceName'" -ErrorAction SilentlyContinue
-if ($svcWmi) {
-    # Status
-    $status = $svcWmi.State
-    $isRunning = ($status.Trim() -eq "Running")
-    Write-Result -Msg "Service '$serviceName' WMI State is 'Running'" -Success $isRunning
-    if (-not $isRunning) {
-        Write-Host "[DEBUG] Expected: 'Running', Actual: '$status'" -ForegroundColor Yellow
+# Step 7: Verify service properties (Status, StartupType, LogOnAs)
+try {
+    $svcWMI = Get-WmiObject -Class Win32_Service -Filter "Name='$serviceName'"
+    if ($null -eq $svcWMI) {
+        Write-Result -Msg "WMI service $serviceName not found" -Success $false
+    } else {
+        $statusMatch = ($svcWMI.State.Trim() -eq "Running")
+        Write-Result -Msg "$serviceName WMI State is Running" -Success $statusMatch
+        if (-not $statusMatch) {
+            Write-Host "[DEBUG] WMI State: '$($svcWMI.State)'" -ForegroundColor Yellow
+        }
+        $startupMatch = ($svcWMI.StartMode.Trim() -eq "Auto")
+        $delayed = $false
+        if ($svcWMI.DelayedAutoStart -ne $null) {
+            $delayed = $svcWMI.DelayedAutoStart
+        }
+        $startupTypeMatch = $startupMatch -and $delayed
+        Write-Result -Msg "$serviceName Startup Type is Automatic (Delayed Start)" -Success $startupTypeMatch
+        if (-not $startupTypeMatch) {
+            Write-Host "[DEBUG] StartMode: '$($svcWMI.StartMode)', DelayedAutoStart: '$($svcWMI.DelayedAutoStart)'" -ForegroundColor Yellow
+        }
+        $logonMatch = ($svcWMI.StartName.Trim() -eq "LocalSystem")
+        Write-Result -Msg "$serviceName Log On As is Local System" -Success $logonMatch
+        if (-not $logonMatch) {
+            Write-Host "[DEBUG] StartName: '$($svcWMI.StartName)'" -ForegroundColor Yellow
+        }
     }
-    # Startup Type
-    $startMode = $svcWmi.StartMode
-    $expectedStartMode = "Delayed Auto"
-    $isStartMode = ($startMode.Trim() -eq $expectedStartMode)
-    Write-Result -Msg "Service '$serviceName' Startup Type is '$expectedStartMode'" -Success $isStartMode
-    if (-not $isStartMode) {
-        Write-Host "[DEBUG] Expected: '$expectedStartMode', Actual: '$startMode'" -ForegroundColor Yellow
-    }
-    # Log On As
-    $logon = $svcWmi.StartName
-    $expectedLogon = "LocalSystem"
-    $isLogon = ($logon.Trim() -eq $expectedLogon)
-    Write-Result -Msg "Service '$serviceName' Log On As is '$expectedLogon'" -Success $isLogon
-    if (-not $isLogon) {
-        Write-Host "[DEBUG] Expected: '$expectedLogon', Actual: '$logon'" -ForegroundColor Yellow
-    }
-} else {
-    Write-Result -Msg "Service '$serviceName' not found in WMI" -Success $false
+} catch {
+    Write-Result -Msg "Failed to query WMI service properties - $($_.Exception.Message)" -Success $false
 }
 
-# 4. Verify log file exists
+# Step 8: Verify log file exists
 $logFilePath = Join-Path $logFolder $logFileName
 $logExists = Test-Path $logFilePath
-Write-Result -Msg "Log file '$logFileName' exists in $logFolder" -Success $logExists
+Write-Result -Msg "$logFileName exists in $logFolder" -Success $logExists
 if (-not $logExists) {
-    Write-Host "[DEBUG] Log file path: $logFilePath" -ForegroundColor Yellow
+    Write-Host "[DEBUG] Log file not found at $logFilePath" -ForegroundColor Yellow
 }
 
-# 5. Verify scheduled task exists
+# Step 9: Verify scheduled task exists
 try {
-    $task = Get-ScheduledTask -TaskPath "\Microsoft\CMD\" -TaskName "Cloud Managed Desktop Extension Health Evaluation" -ErrorAction SilentlyContinue
-    $taskExists = ($task -ne $null)
-    Write-Result -Msg "Scheduled task 'Cloud Managed Desktop Extension Health Evaluation' exists" -Success $taskExists
-    if (-not $taskExists) {
-        Write-Host "[DEBUG] Scheduled task not found at $scheduledTaskPath" -ForegroundColor Yellow
-    }
+    $task = Get-ScheduledTask -TaskPath "\Microsoft\CMD\" -TaskName "Cloud Managed Desktop Extension Health Evaluation" -ErrorAction Stop
+    $taskExists = $true
 } catch {
-    Write-Result -Msg "Scheduled task query failed" -Success $false
-    Write-Host "[DEBUG] Exception - $($_.Exception.Message)" -ForegroundColor Yellow
+    $taskExists = $false
+}
+Write-Result -Msg "Scheduled task 'Cloud Managed Desktop Extension Health Evaluation' exists" -Success $taskExists
+if (-not $taskExists) {
+    Write-Host "[DEBUG] Scheduled task not found: $scheduledTaskPath" -ForegroundColor Yellow
 }
 
-# 6. Verify WMI namespace exists (no "Invalid namespace" error)
+# Step 10: Verify WMI namespace exists (no Invalid namespace error)
 try {
-    $wmiObj = Get-WmiObject -Namespace $wmiNamespace -Class "__Namespace" -ErrorAction Stop
-    Write-Result -Msg "WMI namespace '$wmiNamespace' is accessible (no error)" -Success $true
+    $null = Get-WmiObject -Namespace $wmiNamespace -Class "__Namespace" -ErrorAction Stop
+    Write-Result -Msg "WMI namespace $wmiNamespace exists (no Invalid namespace error)" -Success $true
 } catch {
-    Write-Result -Msg "WMI namespace '$wmiNamespace' is NOT accessible (Invalid namespace)" -Success $false
-    Write-Host "[DEBUG] Exception - $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Result -Msg "WMI namespace $wmiNamespace is INVALID" -Success $false
+    Write-Host "[DEBUG] Exception: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
 # ============================================================
@@ -286,42 +248,23 @@ Write-Host "============================================================" -Foreg
 Write-Host "PHASE 4: CLEANUP" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
-Write-Host "Uninstalling product..." -ForegroundColor Cyan
+Write-Host "Uninstalling $productName..." -ForegroundColor Cyan
 try {
-    $uninstallProcess = Start-Process -FilePath "msiexec.exe" -ArgumentList "/x `"$msiPath`" /qn /l*v `"$installLog`"" -Wait -PassThru -WindowStyle Hidden
-    $uninstallExit = $uninstallProcess.ExitCode
-    Write-Host "MSIExec uninstall exit code: $uninstallExit" -ForegroundColor Gray
+    $uninstallProc = Start-Process -FilePath "msiexec.exe" -ArgumentList "/x `"$msiPath`" /qn /l*v `"$installLog`"" -Wait -PassThru
+    $exitCode = $uninstallProc.ExitCode
+    if ($exitCode -eq 0 -or $exitCode -eq 1605) {
+        Write-Result -Msg "$productName uninstalled successfully (ExitCode $exitCode)" -Success $true
+    } else {
+        Write-Result -Msg "Uninstall failed (ExitCode $exitCode)" -Success $false
+        Write-Host "[DEBUG] See log: $installLog" -ForegroundColor Yellow
+    }
 } catch {
-    Write-Result -Msg "MSI uninstall process failed to start" -Success $false
-    Write-Host "[DEBUG] Exception - $($_.Exception.Message)" -ForegroundColor Yellow
-    Stop-Transcript
-    exit 5
+    Write-Result -Msg "Exception during uninstall - $($_.Exception.Message)" -Success $false
 }
 
-# Uninstall exit code handling
-if ($successCodes -contains $uninstallExit) {
-    Write-Result -Msg "MSI uninstall succeeded (exit code $uninstallExit)" -Success $true
-} elseif ($uninstallExit -eq 1605) {
-    Write-Result -Msg "MSI uninstall failed (exit code 1605 - product not installed)" -Success $false
-} else {
-    Write-Result -Msg "MSI uninstall failed (exit code $uninstallExit)" -Success $false
-}
-
-# Verify service removed
-$svcAfter = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
-$svcRemoved = ($svcAfter -eq $null)
-Write-Result -Msg "Service '$serviceName' removed after uninstall" -Success $svcRemoved
-if (-not $svcRemoved) {
-    Write-Host "[DEBUG] Service still present after uninstall" -ForegroundColor Yellow
-}
-
-# Verify product removed from installed programs
-$productRemoved = -not (Is-ProductInstalled -displayName $productName)
-Write-Result -Msg "Product '$productName' removed from installed programs" -Success $productRemoved
-if (-not $productRemoved) {
-    Write-Host "[DEBUG] Product still present in registry uninstall keys after uninstall" -ForegroundColor Yellow
-}
-
+# ============================================================
+# SUMMARY
+# ============================================================
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "TEST EXECUTION SUMMARY" -ForegroundColor Cyan

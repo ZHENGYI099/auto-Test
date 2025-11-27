@@ -1,7 +1,3 @@
-"""
-Test Script Generator
-基于目标导向的测试脚本生成器
-"""
 import json
 from pathlib import Path
 from typing import Dict, List
@@ -151,7 +147,7 @@ class TestScriptGenerator:
         
         print(f"💾 Script saved to: {output_path}")
     
-    def generate_and_save(self, json_path: str, output_path: str = None, refine: bool = True):
+    def generate_and_save(self, json_path: str, output_path: str = None, refine: bool = True, config: dict = None):
         """
         Complete workflow: load JSON → generate script → refine → save
         
@@ -159,9 +155,16 @@ class TestScriptGenerator:
             json_path: Input JSON file path
             output_path: Output .ps1 file path (optional, auto-generated if not provided)
             refine: Whether to refine the script
+            config: Optional configuration dict (e.g., {'msi_path': 'C:\\path\\to.msi', 'service_name': 'ServiceName'})
         """
         # Load test case
         test_case = self.load_test_case(json_path)
+        
+        # Merge config into test case if provided
+        if config:
+            if 'config' not in test_case:
+                test_case['config'] = {}
+            test_case['config'].update(config)
         
         # Auto-generate output path if not provided
         if not output_path:

@@ -20,7 +20,6 @@ from datetime import datetime
 import queue
 import os
 import re
-import webbrowser
 
 # Add current directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -28,8 +27,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 try:
     from core.csv_parser import parse_csv_to_json, save_json
     from core.test_generator import TestScriptGenerator
-    from core.script_validator import ScriptValidator
-    from core.report_generator import ReportGenerator
     HAS_CORE = True
 except ImportError as e:
     # Fallback: 如果找不到模块，提示用户
@@ -75,17 +72,9 @@ class AutoTestGUI:
         self.status_var = tk.StringVar(value="Ready")
         self.progress_var = tk.DoubleVar(value=0)
         
-        # Store last AI evaluation results
-        self.last_evaluation = None
-        
         # Test process
         self.test_process = None
         self.is_running = False
-        
-        # Report paths
-        self.latest_report_path = None
-        self.latest_log_file = None
-        self.latest_script_path = None  # Track last executed script
         
         # Output queue (for thread communication)
         self.output_queue = queue.Queue()
@@ -243,21 +232,10 @@ class AutoTestGUI:
                                   style='Action.TButton', state='disabled')
         self.run_btn.grid(row=0, column=1, padx=(0, 8))
         
-        output_btn = ttk.Button(btn_frame1, text="📁 Output Dir", 
+        output_btn = ttk.Button(btn_frame1, text="� Output Dir", 
                                command=self.open_output_dir, width=15,
                                style='Action.TButton')
-        output_btn.grid(row=0, column=2, padx=(0, 8))
-        
-        self.view_report_btn = ttk.Button(btn_frame1, text="📊 View Report", 
-                                         command=self.view_report, width=15,
-                                         style='Action.TButton', state='disabled')
-        self.view_report_btn.grid(row=0, column=3, padx=(0, 8))
-        
-        # Add Generate Report button
-        self.gen_report_btn = ttk.Button(btn_frame1, text="📝 Generate Report", 
-                                        command=self.generate_report_manually, width=18,
-                                        style='Action.TButton', state='disabled')
-        self.gen_report_btn.grid(row=0, column=4)
+        output_btn.grid(row=0, column=2)
         
         # Separator line
         separator1 = ttk.Separator(action_frame, orient='horizontal')
@@ -443,74 +421,9 @@ class AutoTestGUI:
                 refine=True  # Enable refinement
             )
             
-            self.output_queue.put(("progress", 90))
+            self.output_queue.put(("progress", 100))
             self.output_queue.put(("log", f"✅ Test script generation completed!", "success"))
             self.output_queue.put(("log", f"📄 Output path: {output_path}", "success"))
-            
-            # Step 3: Validate generated script
-            self.output_queue.put(("log", "🔍 Validating generated script...", "info"))
-            try:
-                with open(output_path, 'r', encoding='utf-8-sig') as f:
-                    script_content = f.read()
-                
-                validator = ScriptValidator()
-                validation_result = validator.validate_script(script_content)
-                
-                if validation_result['is_valid']:
-                    self.output_queue.put(("log", "✅ Script validation passed!", "success"))
-                else:
-                    report = validator.get_validation_report()
-                    self.output_queue.put(("log", "⚠️ Validation warnings/errors found:", "warning"))
-                    for line in report.split('\n'):
-                        if line.strip():
-                            self.output_queue.put(("log", f"   {line}", "warning"))
-            except Exception as e:
-                self.output_queue.put(("log", f"⚠️ Validation error: {str(e)}", "warning"))
-            
-            # Step 4: AI Quality Evaluation
-            self.output_queue.put(("log", "━" * 60, "info"))
-            self.output_queue.put(("log", "🤖 Evaluating script quality with AI...", "info"))
-            try:
-                from core.script_evaluator import ScriptEvaluator
-                
-                evaluator = ScriptEvaluator()
-                evaluation = evaluator.evaluate_script_quality(
-                    script=script_content,
-                    test_case_id=test_case['test_case_id'],
-                    test_scenario=test_case.get('test_scenario', ''),
-                    expected_steps=len(test_case.get('steps', []))
-                )
-                
-                # Display evaluation results
-                self.output_queue.put(("log", f"📊 Overall Quality Score: {evaluation['overall_score']}/100 (Grade: {evaluation['grade']})", "success"))
-                self.output_queue.put(("log", "   Dimension Scores:", "info"))
-                scores = evaluation.get('scores', {})
-                self.output_queue.put(("log", f"   • Correctness:     {scores.get('correctness', 0)}/100", "info"))
-                self.output_queue.put(("log", f"   • Completeness:    {scores.get('completeness', 0)}/100", "info"))
-                self.output_queue.put(("log", f"   • Best Practices:  {scores.get('best_practices', 0)}/100", "info"))
-                self.output_queue.put(("log", f"   • Robustness:      {scores.get('robustness', 0)}/100", "info"))
-                self.output_queue.put(("log", f"   • Maintainability: {scores.get('maintainability', 0)}/100", "info"))
-                
-                # Show strengths
-                if evaluation.get('strengths'):
-                    self.output_queue.put(("log", "   ✅ Strengths:", "success"))
-                    for strength in evaluation['strengths'][:3]:
-                        self.output_queue.put(("log", f"      • {strength}", "success"))
-                
-                # Show weaknesses
-                if evaluation.get('weaknesses'):
-                    self.output_queue.put(("log", "   ⚠️ Areas for Improvement:", "warning"))
-                    for weakness in evaluation['weaknesses'][:3]:
-                        self.output_queue.put(("log", f"      • {weakness}", "warning"))
-                
-                # Store evaluation for later use in report
-                self.last_evaluation = evaluation
-                
-            except Exception as e:
-                self.output_queue.put(("log", f"⚠️ AI evaluation error: {str(e)}", "warning"))
-                self.last_evaluation = None
-            
-            self.output_queue.put(("progress", 100))
             self.output_queue.put(("log", "━" * 60, "info"))
             self.output_queue.put(("log", "✅ You can now click [Run Test] button to execute", "success"))
             
@@ -585,9 +498,6 @@ class AutoTestGUI:
     def _run_test_thread(self, script_path):
         """Thread function for test execution"""
         try:
-            # Save script path for manual report generation
-            self.latest_script_path = script_path
-            
             # CRITICAL FIX: Convert to absolute path
             # When PowerShell runs as admin, working directory changes
             # Relative paths will fail, causing window to flash and exit
@@ -649,50 +559,13 @@ class AutoTestGUI:
                 self.output_queue.put(("log", "✅ Test window launched successfully", "success"))
                 self.output_queue.put(("status", "Test running in separate window"))
                 
-                # Wait for script to complete by monitoring log file
+                # Give user time to see the message
                 import time
-                self.output_queue.put(("log", "⏳ Waiting for test script to complete...", "info"))
-                
-                # Find the log file directory
-                script_dir = Path(script_path).parent
-                log_dir = script_dir.parent / "output" / "logs"
-                
-                # Wait up to 5 minutes for the log to be created and completed
-                max_wait = 300  # 5 minutes
-                check_interval = 2  # Check every 2 seconds
-                elapsed = 0
-                log_file_found = None
-                
-                while elapsed < max_wait:
-                    if log_dir.exists():
-                        log_files = sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
-                        if log_files:
-                            log_file_found = log_files[0]
-                            # Check if the log file contains completion marker
-                            try:
-                                with open(log_file_found, 'r', encoding='utf-8') as f:
-                                    content = f.read()
-                                    # Look for PowerShell transcript end marker or script end
-                                    if "Windows PowerShell 脚本结束" in content or ("**********************" in content and content.count("**********************") >= 2):
-                                        self.output_queue.put(("log", f"✅ Script completed, log file: {log_file_found.name}", "success"))
-                                        break
-                            except:
-                                pass
-                    
-                    time.sleep(check_interval)
-                    elapsed += check_interval
-                    
-                    # Show progress every 10 seconds
-                    if elapsed % 10 == 0:
-                        self.output_queue.put(("log", f"   Still waiting... ({elapsed}s elapsed)", "info"))
-                
-                if elapsed >= max_wait:
-                    self.output_queue.put(("log", f"⚠️ Timeout waiting for script completion ({max_wait}s)", "warning"))
-                
-                # Additional 2 seconds to ensure file is fully written
                 time.sleep(2)
                 
-                # Try to read and display results
+                # Try to read and display results after a delay
+                self.output_queue.put(("log", "   Checking for test results...", "info"))
+                time.sleep(3)  # Wait a bit for test to potentially complete
                 self._display_test_results(script_path)
             else:
                 self.output_queue.put(("log", f"⚠️ Launch process exit code: {self.test_process.returncode}", "warning"))
@@ -700,78 +573,6 @@ class AutoTestGUI:
                     self.output_queue.put(("log", f"Error message:\n{stderr}", "error"))
             
             self.output_queue.put(("progress", 100))
-            
-            # Generate HTML Report with AI Analysis
-            self.output_queue.put(("log", "━" * 60, "info"))
-            self.output_queue.put(("log", "📄 Generating HTML report with AI analysis...", "info"))
-            
-            try:
-                # Find the log file
-                script_dir = Path(script_path).parent
-                log_dir = script_dir.parent / "output" / "logs"
-                
-                log_content = ""
-                if log_dir.exists():
-                    log_files = sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
-                    if log_files:
-                        latest_log = log_files[0]
-                        self.output_queue.put(("log", f"   Found log: {latest_log.name}", "info"))
-                        
-                        # Try multiple encodings (PowerShell transcripts often use UTF-16 LE)
-                        encodings = ['utf-16-le', 'utf-16', 'utf-8', 'gbk', 'latin-1']
-                        for encoding in encodings:
-                            try:
-                                with open(latest_log, 'r', encoding=encoding) as f:
-                                    log_content = f.read()
-                                self.output_queue.put(("log", f"   Encoding detected: {encoding}", "debug"))
-                                break
-                            except (UnicodeDecodeError, UnicodeError):
-                                continue
-                        else:
-                            # If all encodings fail, read as binary and decode with errors='replace'
-                            self.output_queue.put(("log", "⚠️ Using fallback encoding with error replacement", "warning"))
-                            with open(latest_log, 'r', encoding='utf-8', errors='replace') as f:
-                                log_content = f.read()
-                        
-                        self.latest_log_file = str(latest_log)
-                
-                # If no log file found, use GUI output
-                if not log_content:
-                    self.output_queue.put(("log", "⚠️ No PowerShell transcript found, using GUI log", "warning"))
-                    log_content = self.output_text.get(1.0, tk.END)
-                
-                # Generate HTML report with AI analysis
-                report_gen = ReportGenerator()
-                
-                self.output_queue.put(("log", "🤖 AI analyzing logs...", "info"))
-                ai_analysis = report_gen.analyze_logs_with_ai(
-                    logs=log_content,
-                    test_case_id=self.test_case_id.get() or Path(script_path).stem
-                )
-                
-                report_path = report_gen.generate_html_report(
-                    test_case_id=self.test_case_id.get() or Path(script_path).stem,
-                    script_path=script_path,
-                    logs=log_content,
-                    ai_analysis=ai_analysis,
-                    quality_evaluation=self.last_evaluation,
-                    timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                )
-                
-                self.latest_report_path = report_path
-                self.output_queue.put(("log", f"✅ HTML report generated: {Path(report_path).name}", "success"))
-                self.output_queue.put(("log", f"   Path: {report_path}", "info"))
-                self.output_queue.put(("log", "   Click [View Report] button to open in browser", "success"))
-                self.output_queue.put(("enable_view_report", True))
-                
-            except Exception as e:
-                self.output_queue.put(("log", f"⚠️ Auto report generation failed: {str(e)}", "warning"))
-                self.output_queue.put(("log", "💡 You can use [Generate Report] button to retry manually", "info"))
-                import traceback
-                self.output_queue.put(("log", traceback.format_exc(), "error"))
-            
-            # Always enable manual report generation button after test runs
-            self.output_queue.put(("enable_gen_report", True))
             
         except Exception as e:
             self.output_queue.put(("log", f"❌ Execution failed: {str(e)}", "error"))
@@ -862,80 +663,6 @@ class AutoTestGUI:
         
         os.startfile(str(output_dir))
     
-    def view_report(self):
-        """Open latest HTML report in browser"""
-        if self.latest_report_path and Path(self.latest_report_path).exists():
-            webbrowser.open(f"file:///{self.latest_report_path}")
-            self.log_message(f"📊 Opening report: {Path(self.latest_report_path).name}", "info")
-        else:
-            messagebox.showwarning("No Report", "No report available. Please run a test first.")
-    
-    def generate_report_manually(self):
-        """Manually generate HTML report from latest log file"""
-        if not self.latest_script_path:
-            messagebox.showwarning("No Script", "No test script has been executed yet.")
-            return
-        
-        self.log_message("━" * 60, "info")
-        self.log_message("📝 Manually generating HTML report...", "info")
-        
-        try:
-            # Find the latest log file
-            script_dir = Path(self.latest_script_path).parent
-            log_dir = script_dir.parent / "output" / "logs"
-            
-            log_content = ""
-            if log_dir.exists():
-                log_files = sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
-                if log_files:
-                    latest_log = log_files[0]
-                    self.log_message(f"   Found log: {latest_log.name}", "info")
-                    
-                    with open(latest_log, 'r', encoding='utf-8') as f:
-                        log_content = f.read()
-                    
-                    self.latest_log_file = str(latest_log)
-            
-            if not log_content:
-                self.log_message("⚠️ No log file found", "warning")
-                log_content = self.output_text.get(1.0, tk.END)
-            
-            # Generate HTML report with AI analysis
-            report_gen = ReportGenerator()
-            
-            self.log_message("🤖 AI analyzing logs (this may take 10-30 seconds)...", "info")
-            self.root.update()  # Force UI update
-            
-            ai_analysis = report_gen.analyze_logs_with_ai(
-                logs=log_content,
-                test_case_id=self.test_case_id.get() or Path(self.latest_script_path).stem
-            )
-            
-            report_path = report_gen.generate_html_report(
-                test_case_id=self.test_case_id.get() or Path(self.latest_script_path).stem,
-                script_path=self.latest_script_path,
-                logs=log_content,
-                ai_analysis=ai_analysis,
-                quality_evaluation=self.last_evaluation,
-                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            )
-            
-            self.latest_report_path = report_path
-            self.log_message(f"✅ HTML report generated: {Path(report_path).name}", "success")
-            self.log_message(f"   Path: {report_path}", "info")
-            
-            # Enable view button
-            self.view_report_btn.config(state='normal')
-            
-            # Ask if user wants to open it
-            if messagebox.askyesno("Report Generated", "Report generated successfully! Open in browser?"):
-                self.view_report()
-                
-        except Exception as e:
-            self.log_message(f"❌ Report generation failed: {str(e)}", "error")
-            import traceback
-            self.log_message(traceback.format_exc(), "error")
-    
     def clear_output(self):
         """Clear output log"""
         self.output_text.delete(1.0, tk.END)
@@ -965,10 +692,6 @@ class AutoTestGUI:
                     self.run_btn.config(state='normal' if item[1] else 'disabled')
                 elif item[0] == "enable_generate":
                     self.generate_btn.config(state='normal' if item[1] else 'disabled')
-                elif item[0] == "enable_view_report":
-                    self.view_report_btn.config(state='normal' if item[1] else 'disabled')
-                elif item[0] == "enable_gen_report":
-                    self.gen_report_btn.config(state='normal' if item[1] else 'disabled')
                 elif item[0] == "enable_buttons":
                     self._restore_button_states()
                     

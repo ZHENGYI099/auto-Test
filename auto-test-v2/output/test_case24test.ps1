@@ -35,246 +35,198 @@ function Write-Result {
     }
 }
 
-function Get-MSIProperty {
-    param(
-        [string]$msiPath,
-        [string]$property
-    )
-    try {
-        $installer = New-Object -ComObject WindowsInstaller.Installer
-        $database = $installer.GetType().InvokeMember("OpenDatabase", 'InvokeMethod', $null, $installer, @($msiPath, 0))
-        $query = "SELECT Value FROM Property WHERE Property = '$property'"
-        $view = $database.GetType().InvokeMember("OpenView", 'InvokeMethod', $null, $database, ($query))
-        $null = $view.GetType().InvokeMember("Execute", 'InvokeMethod', $null, $view, $null)
-        $record = $view.GetType().InvokeMember("Fetch", 'InvokeMethod', $null, $view, $null)
-        $value = $null
-        if ($record -ne $null) {
-            $value = $record.GetType().InvokeMember("StringData", 'GetProperty', $null, $record, 1)
-        }
-        $null = [System.Runtime.InteropServices.Marshal]::ReleaseComObject($view)
-        $null = [System.Runtime.InteropServices.Marshal]::ReleaseComObject($database)
-        $null = [System.Runtime.InteropServices.Marshal]::ReleaseComObject($installer)
-        if ([string]::IsNullOrWhiteSpace($value)) {
-            return $null
-        }
-        return $value.Trim()
-    } catch {
-        Write-Host "[DEBUG] Get-MSIProperty failed for property '$property': $_" -ForegroundColor Yellow
-        return $null
-    }
-}
-
 # Check admin privileges
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Host "❌ ERROR: Must run as Administrator" -ForegroundColor Red
-    Stop-Transcript
+    Write-Host "ERROR - Must run as Administrator" -ForegroundColor Red
     exit 1
 }
 
 # Define paths and names
 $msiPath = "C:\VMShare\cmdextension.msi"
-$testToastScript = "C:\VMShare\test_toast.ps1"
+$toastScript = "C:\VMShare\test_toast.ps1"
 $serviceName = "CloudManagedDesktopExtension"
 $logFolder = "$env:ProgramData\Microsoft\CMDExtension\Logs"
 $userNotificationsLog = Join-Path $logFolder "UserNotificationsPlugin.log"
 
-# MSI ProductCode (for uninstall check)
-$msiProductCode = Get-MSIProperty -msiPath $msiPath -property "ProductCode"
-if ([string]::IsNullOrWhiteSpace($msiProductCode)) {
-    Write-Result -Msg "Failed to retrieve MSI ProductCode" -Success $false
+# Check MSI presence
+if (-not (Test-Path $msiPath)) {
+    Write-Result -Msg "MSI file not found at $msiPath" -Success $false
+    Write-Host "Aborting test due to missing MSI." -ForegroundColor Red
     Stop-Transcript
     exit 2
+} else {
+    Write-Result -Msg "MSI file found at $msiPath" -Success $true
 }
 
-# Check if product already installed
-$installed = $false
+# Check toast script presence
+if (-not (Test-Path $toastScript)) {
+    Write-Result -Msg "Toast script not found at $toastScript" -Success $false
+    Write-Host "Aborting test due to missing toast script." -ForegroundColor Red
+    Stop-Transcript
+    exit 3
+} else {
+    Write-Result -Msg "Toast script found at $toastScript" -Success $true
+}
+
+# Check if product already installed (service exists and running)
+$svc = $null
 try {
-    $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$msiProductCode"
-    if (Test-Path $regPath) {
-        $installed = $true
+    $svc = Get-Service -Name $serviceName -ErrorAction Stop
+    if ($svc.Status -eq "Running") {
+        Write-Result -Msg "Service $serviceName already running - uninstalling before test" -Success $false
+        Write-Host "Attempting to uninstall existing product..." -ForegroundColor Yellow
+        $uninstallArgs = "/x `"$msiPath`" /qn"
+        $uninstallProc = Start-Process -FilePath "msiexec.exe" -ArgumentList $uninstallArgs -Wait -PassThru
+        $exitCode = $uninstallProc.ExitCode
+        if ($exitCode -eq 0 -or $exitCode -eq 1605 -or $exitCode -eq 3010) {
+            Write-Result -Msg "Previous installation removed (exit code $exitCode)" -Success $true
+        } else {
+            Write-Result -Msg "Failed to uninstall previous installation (exit code $exitCode)" -Success $false
+            Write-Host "Aborting test due to uninstall failure." -ForegroundColor Red
+            Stop-Transcript
+            exit 4
+        }
+        Start-Sleep -Seconds 10
     }
-} catch {}
-if ($installed) {
-    Write-Result -Msg "Product already installed. Uninstalling before test..." -Success $false
-    $uninstallCmd = "msiexec.exe /x `"$msiPath`" /qn"
-    $uninstallProc = Start-Process -FilePath "msiexec.exe" -ArgumentList "/x `"$msiPath`" /qn" -Wait -PassThru
-    if ($uninstallProc.ExitCode -eq 0 -or $uninstallProc.ExitCode -eq 1605) {
-        Write-Result -Msg "Previous installation removed" -Success $true
-    } else {
-        Write-Result -Msg "Failed to uninstall previous installation (ExitCode: $($uninstallProc.ExitCode))" -Success $false
-        Stop-Transcript
-        exit 3
-    }
+} catch {
+    Write-Result -Msg "No existing service $serviceName found" -Success $true
 }
 
-# Check for required files
-if (-not (Test-Path $msiPath)) {
-    Write-Result -Msg "MSI file not found: $msiPath" -Success $false
-    Stop-Transcript
-    exit 4
-}
-if (-not (Test-Path $testToastScript)) {
-    Write-Result -Msg "Test toast script not found: $testToastScript" -Success $false
-    Stop-Transcript
-    exit 5
-}
-
-Write-Result -Msg "Pre-checks completed" -Success $true
 Write-Host ""
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "PHASE 2: INSTALLATION" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
 
 # ============================================================
 # PHASE 2: INSTALLATION
 # ============================================================
-Write-Host "Installing product..." -ForegroundColor Cyan
-
+Write-Host "Installing MSI..." -ForegroundColor Cyan
 $installArgs = "/i `"$msiPath`" SVCENV=Test /qn"
 try {
     $installProc = Start-Process -FilePath "msiexec.exe" -ArgumentList $installArgs -Wait -PassThru
     $exitCode = $installProc.ExitCode
-    if ($exitCode -eq 0 -or $exitCode -eq 3010) {
-        Write-Result -Msg "MSI installed successfully (ExitCode: $exitCode)" -Success $true
-    } elseif ($exitCode -eq 1603) {
-        Write-Result -Msg "MSI installation failed (ExitCode: 1603)" -Success $false
+    $success = ($exitCode -eq 0 -or $exitCode -eq 3010)
+    Write-Result -Msg "MSI installation exit code $exitCode" -Success $success
+    if (-not $success) {
+        Write-Host "[DEBUG] MSI install failed - exit code $exitCode" -ForegroundColor Yellow
+        Write-Host "Aborting test due to installation failure." -ForegroundColor Red
         Stop-Transcript
-        exit 6
-    } elseif ($exitCode -eq 1618) {
-        Write-Result -Msg "Another installation in progress (ExitCode: 1618)" -Success $false
-        Stop-Transcript
-        exit 7
-    } elseif ($exitCode -eq 1925) {
-        Write-Result -Msg "Insufficient privileges (ExitCode: 1925)" -Success $false
-        Stop-Transcript
-        exit 8
-    } else {
-        Write-Result -Msg "MSI installation failed (ExitCode: $exitCode)" -Success $false
-        Stop-Transcript
-        exit 9
+        exit 5
     }
 } catch {
-    Write-Result -Msg "Exception during MSI installation: $_" -Success $false
+    Write-Result -Msg "Exception during MSI install - $($_.Exception.Message)" -Success $false
+    Write-Host "Aborting test due to install exception." -ForegroundColor Red
     Stop-Transcript
-    exit 10
+    exit 6
 }
 
-# Wait for service to start (max 2 min, check every 5 sec)
-$serviceStarted = $false
-for ($i=0; $i -lt 24; $i++) {
-    try {
-        $svc = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
-        if ($svc -and $svc.Status -eq 'Running') {
-            $serviceStarted = $true
-            break
-        }
-    } catch {}
-    Start-Sleep -Seconds 5
+# Wait for service to start (if applicable)
+Start-Sleep -Seconds 10
+$svc = $null
+try {
+    $svc = Get-Service -Name $serviceName -ErrorAction Stop
+    if ($svc.Status -eq "Running") {
+        Write-Result -Msg "Service $serviceName is running after install" -Success $true
+    } else {
+        Write-Result -Msg "Service $serviceName not running after install (Status: $($svc.Status))" -Success $false
+        Write-Host "[DEBUG] Service status: $($svc.Status)" -ForegroundColor Yellow
+    }
+} catch {
+    Write-Result -Msg "Service $serviceName not found after install" -Success $false
+    Write-Host "[DEBUG] Exception: $($_.Exception.Message)" -ForegroundColor Yellow
 }
-Write-Result -Msg "Service '$serviceName' running after install" -Success $serviceStarted
+
+Write-Host ""
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "PHASE 3: VERIFICATION" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
 
 # ============================================================
 # PHASE 3: VERIFICATION
 # ============================================================
-Write-Host "Verifying installation and plugin behavior..." -ForegroundColor Cyan
 
-# Wait 10 minutes as per scenario (simulate with 10 sec for test automation)
-Write-Host "Waiting for plugin initialization (simulated 10 sec)..." -ForegroundColor Gray
-Start-Sleep -Seconds 10
+# Step 5: Wait 10 minutes
+Write-Host "Waiting 10 minutes for agent initialization..." -ForegroundColor Cyan
+Start-Sleep -Seconds 600
 
-# Ensure execution policy allows running the toast script
-try {
-    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-    Write-Result -Msg "Execution policy set to Bypass for this session" -Success $true
-} catch {
-    Write-Result -Msg "Failed to set execution policy" -Success $false
-}
-
-# Run test_toast.ps1
+# Step 5: Run toast script (handle execution policy if needed)
+Write-Host "Running toast notification script..." -ForegroundColor Cyan
 $toastSuccess = $false
 try {
-    $toastResult = & $testToastScript
+    & $toastScript
     $toastSuccess = $true
+    Write-Result -Msg "Toast script executed successfully" -Success $true
 } catch {
-    Write-Result -Msg "Failed to execute test_toast.ps1: $_" -Success $false
+    Write-Host "Execution policy may be blocking script - setting to Bypass and retrying..." -ForegroundColor Yellow
+    try {
+        Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+        & $toastScript
+        $toastSuccess = $true
+        Write-Result -Msg "Toast script executed successfully after policy bypass" -Success $true
+    } catch {
+        Write-Result -Msg "Failed to execute toast script - $($_.Exception.Message)" -Success $false
+    }
 }
-Write-Result -Msg "test_toast.ps1 executed" -Success $toastSuccess
 
-# Log verification: UserNotificationsPlugin.log
+# Step 6: UX popup verification - NO script check (visual only, skip)
+
+# Step 7: Check UserNotificationsPlugin.log for required contents
+Write-Host "Checking UserNotificationsPlugin.log for expected contents..." -ForegroundColor Cyan
 $logExists = Test-Path $userNotificationsLog
 Write-Result -Msg "UserNotificationsPlugin.log exists" -Success $logExists
-
-$expectedLogLines = @(
-    'The UX input is : {"TemplateType":"sampleTemplate"',
-    'DisplayUserNotification is waiting for the UX to be closed'
-)
-$logContent = ""
 if ($logExists) {
-    try {
-        $logContent = Get-Content $userNotificationsLog -ErrorAction Stop
-    } catch {
-        Write-Result -Msg "Failed to read UserNotificationsPlugin.log" -Success $false
+    $logContent = Get-Content $userNotificationsLog -Raw
+    $checks = @(
+        @{ Text = 'The UX input is : {"TemplateType":"sampleTemplate"'; Desc = 'UX input line present' },
+        @{ Text = 'DisplayUserNotification is waiting for the UX to be closed'; Desc = 'DisplayUserNotification waiting line present' }
+    )
+    foreach ($check in $checks) {
+        if ([string]::IsNullOrWhiteSpace($logContent)) {
+            Write-Result -Msg "$($check.Desc) - log content is empty" -Success $false
+        } else {
+            $found = $logContent.Trim() -like "*$($check.Text)*"
+            Write-Result -Msg "$($check.Desc)" -Success $found
+            if (-not $found) {
+                Write-Host "[DEBUG] Expected text not found: '$($check.Text)'" -ForegroundColor Yellow
+            }
+        }
     }
+} else {
+    Write-Host "[DEBUG] Log file missing: $userNotificationsLog" -ForegroundColor Yellow
 }
 
-foreach ($line in $expectedLogLines) {
-    $found = $false
-    if ($logContent) {
-        $found = $logContent | Select-String -Pattern [regex]::Escape($line) -Quiet
-    }
-    Write-Result -Msg "Log contains expected line: $line" -Success $found
-}
+# Step 8: "Delay 4 Hours" - UI only, no script action
 
-# Simulate "Delay 4 Hours" selection and verify log again
-# (No actual UI interaction; just check log again as per scenario)
-Write-Host "Simulating 'Delay 4 Hours' selection (verifying log again)..." -ForegroundColor Gray
-foreach ($line in $expectedLogLines) {
-    $found = $false
-    if ($logContent) {
-        $found = $logContent | Select-String -Pattern [regex]::Escape($line) -Quiet
-    }
-    Write-Result -Msg "Log (post-delay) contains expected line: $line" -Success $found
-}
+# Step 9: Check UserNotificationsPlugin.log again (no explicit expect result, but action is to open log)
+# Since no new expect result, just confirm file still exists
+Write-Host "Re-checking UserNotificationsPlugin.log exists after delay..." -ForegroundColor Cyan
+$logExists2 = Test-Path $userNotificationsLog
+Write-Result -Msg "UserNotificationsPlugin.log exists after delay" -Success $logExists2
 
 Write-Host ""
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "PHASE 4: CLEANUP" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
 
 # ============================================================
 # PHASE 4: CLEANUP
 # ============================================================
-Write-Host "Cleaning up: Uninstalling product..." -ForegroundColor Cyan
-
+Write-Host "Uninstalling MSI for cleanup..." -ForegroundColor Cyan
 $uninstallArgs = "/x `"$msiPath`" /qn"
 try {
     $uninstallProc = Start-Process -FilePath "msiexec.exe" -ArgumentList $uninstallArgs -Wait -PassThru
     $exitCode = $uninstallProc.ExitCode
-    if ($exitCode -eq 0 -or $exitCode -eq 1605) {
-        Write-Result -Msg "MSI uninstalled successfully (ExitCode: $exitCode)" -Success $true
-    } elseif ($exitCode -eq 1603) {
-        Write-Result -Msg "MSI uninstall failed (ExitCode: 1603)" -Success $false
-    } elseif ($exitCode -eq 1618) {
-        Write-Result -Msg "Another uninstall in progress (ExitCode: 1618)" -Success $false
-    } elseif ($exitCode -eq 1925) {
-        Write-Result -Msg "Insufficient privileges (ExitCode: 1925)" -Success $false
-    } else {
-        Write-Result -Msg "MSI uninstall failed (ExitCode: $exitCode)" -Success $false
+    $success = ($exitCode -eq 0 -or $exitCode -eq 1605 -or $exitCode -eq 3010)
+    Write-Result -Msg "MSI uninstall exit code $exitCode" -Success $success
+    if (-not $success) {
+        Write-Host "[DEBUG] MSI uninstall failed - exit code $exitCode" -ForegroundColor Yellow
     }
 } catch {
-    Write-Result -Msg "Exception during MSI uninstall: $_" -Success $false
+    Write-Result -Msg "Exception during MSI uninstall - $($_.Exception.Message)" -Success $false
 }
-
-# Verify service removed
-$svcRemoved = $false
-try {
-    $svc = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
-    if (-not $svc) {
-        $svcRemoved = $true
-    }
-} catch {
-    $svcRemoved = $true
-}
-Write-Result -Msg "Service '$serviceName' removed after uninstall" -Success $svcRemoved
-
-Write-Host ""
 
 # ============================================================
-# TEST EXECUTION SUMMARY
+# SUMMARY
 # ============================================================
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan

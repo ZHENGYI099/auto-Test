@@ -1,0 +1,51 @@
+{
+  "test_case_id": "case11",
+  "test_scenario": "Check agent upgrade success and wmi table correct",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Apply to all devices, when we have at least 2 versions of release candidate. (version number: v1 < v2)",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Press “Win + E” keys,\nopen File Explorer, go to the folder where “cmdextension.v1.msi and\ncmdextension.v2.msi” locates",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Run command: msiexec /i cmdextension.v1.msi SVCENV=\"Test\"",
+      "expected": ""
+    },
+    {
+      "step": 5,
+      "action": "Wait 1 minute. 1. Check CMDExtension.log, there is \"DeviceClient created and opened successfully\"\n\n2. Run Powershell in admin mode: $sc = Get-WmiObject -Namespace \"root/cmd/clientagent\" -Class SchedulerEntity; $test1=@();for ($i=0; $i -lt $sc.Length;$i++){$test1+=$sc[$i].PolicyId}; $test2=$test1 | select -unique; $test1.Length -eq $test2.Length",
+      "expected": "Powershell result is True"
+    },
+    {
+      "step": 6,
+      "action": "Run command msiexec /i cmdextension.v2.msi /qn+ SVCENV=\"Test\"",
+      "expected": "The prompt window should pop up: Title is “Microsoft Cloud Managed Desktop Extension”, and Message is “Microsoft Cloud Managed Desktop Extension Setup completed successfully.”"
+    },
+    {
+      "step": 7,
+      "action": "Wait 1 minute. 1. Check CMDExtension.log, there is \"DeviceClient created and opened successfully\"\n\n2. Run Powershell in admin mode: $sc = Get-WmiObject -Namespace \"root/cmd/clientagent\" -Class SchedulerEntity; $test1=@();for ($i=0; $i -lt $sc.Length;$i++){$test1+=$sc[$i].PolicyId}; $test2=$test1 | select -unique; $test1.Length -eq $test2.Length",
+      "expected": "Powershell result is True"
+    },
+    {
+      "step": 8,
+      "action": "Open “Control Panel -> Programs -> Uninstall a program”",
+      "expected": "Verify “Microsoft Cloud Managed Desktop Extension” is present in the list of installed programs, and its Version is [v2-version-number]."
+    },
+    {
+      "step": 9,
+      "action": "Test Cleanup:\n\n\nIn the same powershell window as “Step 3”, run command: msiexec /x cmdextension.v2.msi",
+      "expected": ""
+    }
+  ]
+}

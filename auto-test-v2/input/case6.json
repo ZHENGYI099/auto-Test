@@ -1,0 +1,36 @@
+{
+  "test_case_id": "case6",
+  "test_scenario": "Check plugin execution",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "Run command: msiexec /i cmdextension.msi SVCENV=Test",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Wait 20 minutes, and go to validation",
+      "expected": ""
+    },
+    {
+      "step": 5,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs. \nOpen below log files",
+      "expected": "Verify corresponding contents are in the logs.\n\n·     HeartbeatPlugin.log: “ServiceStatus: Running, Agent Version: [version-number], CpuUsage:\n[cpu-percentage], MemoryUsage: [memory-in-MB]”\n\n·     GuardianTaskCheckerPlugin.log: “Check success for CMD Client Agent Guardian\ntask (task folder name: CMD, task name: Cloud Managed Desktop Extension Health\nEvaluation)”\n\n·     MessageSenderPlugin.log: \n1. “Plugin 10a949a0-756f-46ab-aa74-68091f1612db executes policy b62873d6-2aec-403a-95ac-6e84250e46cd Success but failed to process the result to NoSender” - should be printed every 15 minute;\n2. “Plugin 10a949a0-756f-46ab-aa74-68091f1612db executes policy f2fd6b33-6da7-4266-abbb-f74b129105d5 Success but failed to process the result to NoSender” - should be printed every 1 minute; \n2. “Batch messages handler time watch : Updating message status duration” - should be printed at least once."
+    },
+    {
+      "step": 6,
+      "action": "Test Cleanup:\n\n\nIn the same powershell window as “Step 3”, run command: msiexec /x cmdextension.msi",
+      "expected": ""
+    }
+  ]
+}

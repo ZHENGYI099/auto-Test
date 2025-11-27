@@ -1,0 +1,76 @@
+{
+  "test_case_id": "case2",
+  "test_scenario": "Check agent uninstallation",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Apply to all devices.",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "In file explorer, click on “File -> Open Windows PowerShell -> Open Windows PowerShell as administrator”",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Run command: msiexec /i cmdextension.msi",
+      "expected": ""
+    },
+    {
+      "step": 5,
+      "action": "Wait 1 minute, and run command: msiexec /x cmdextension.msi /qn+",
+      "expected": "The prompt window should pop up: Title is “Microsoft Cloud Managed Desktop Extension”, and Message is “Microsoft Cloud Managed Desktop Extension Setup completed successfully.”"
+    },
+    {
+      "step": 6,
+      "action": "Open “Control Panel -> Programs -> Uninstall a program”",
+      "expected": "Verify there is NO “Microsoft Cloud Managed Desktop Extension” in the list of installed programs."
+    },
+    {
+      "step": 7,
+      "action": "Open “Task Manager -> Services”",
+      "expected": "Verify there is NO “CloudManagedDesktopExtension”."
+    },
+    {
+      "step": 8,
+      "action": "Press “Win + R” keys, type “services.msc” and press Enter.",
+      "expected": "Verify there is NO “Microsoft Cloud Managed Desktop Extension”."
+    },
+    {
+      "step": 9,
+      "action": "Open filer explorer, go to \"C:\\\\Program Files\" (for 64bit version) or \"C:\\\\Program Files (x86)\" (for 32bit version)",
+      "expected": "Verify there is NO\n“Microsoft Cloud Managed Desktop Extension” folder."
+    },
+    {
+      "step": 10,
+      "action": "Open file explorer, go to %ProgramData%\\Microsoft\\CMDExtension\\Logs.",
+      "expected": "Verify “CMDExtension.log” is still present."
+    },
+    {
+      "step": 11,
+      "action": "Open “Logs\\InfraLogs\\AgentMainService.log”",
+      "expected": "Verify “Service is on OnStop” is printed."
+    },
+    {
+      "step": 12,
+      "action": "Press “Win + R” keys, type “taskschd.msc” and press Enter. Open “Task scheduler library -> Microsoft -> CMD”",
+      "expected": "Verify there is NOT “Cloud Managed Desktop Extension Health Evaluation”."
+    },
+    {
+      "step": 13,
+      "action": "Press “Win + R” keys, type “wbemtest” and press Enter. Click on “Connect”, type “root\\cmd\\clientagent” and press Enter.",
+      "expected": "Verify there is error prompt window which displays “Invalid namespace”."
+    },
+    {
+      "step": 14,
+      "action": "Open registry",
+      "expected": "Verify there is no \"CloudManagementDesktop\" under Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft for x86, Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft for x64"
+    }
+  ]
+}

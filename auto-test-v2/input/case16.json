@@ -1,0 +1,26 @@
+{
+  "test_case_id": "case16",
+  "test_scenario": "Check guardian task restart agent when it stopped",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Install client agent with command msiexec /i cmdextension.msi SVCENV=\"Test\"",
+      "expected": ""
+    },
+    {
+      "step": 2,
+      "action": "Press “Win + R” keys, type “services.msc” and press Enter. Right click on “Microsoft Cloud Managed Desktop Extension -> Stop” and the Status should be empty",
+      "expected": ""
+    },
+    {
+      "step": 3,
+      "action": "Wait for more than 24 hours Or speed up by steps show in Discussion",
+      "expected": ""
+    },
+    {
+      "step": 4,
+      "action": "Go to service panel, the Microsoft Cloud Managed Desktop Extension status should be  \"Running\"",
+      "expected": ""
+    }
+  ]
+}

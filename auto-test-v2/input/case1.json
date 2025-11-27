@@ -1,6 +1,6 @@
 {
   "test_case_id": "case1",
-  "test_scenario": "",
+  "test_scenario": "Check agent installation,,",
   "steps": [
     {
       "step": 1,
@@ -34,7 +34,7 @@
     },
     {
       "step": 7,
-      "action": "Press “Win + R” keys, type “services.msc” and press Enter.",
+      "action": "Press “Win + R” keys, type “services.msc” and press Check agent installationnter.",
       "expected": "Verify “Microsoft Cloud Managed Desktop Extension” - Status is “Running”, Startup Type is “Automatic (Delayed Start)”, and Log On As is “Local System”."
     },
     {

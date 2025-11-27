@@ -1,4 +1,4 @@
-﻿# Test Scenario: Check agent installation
+﻿# Test Scenario: Check agent installation,,
 Steps,Action,Expect result
 1,Apply to all devices.,
 2,"Press “Win + E” keys, open File Explorer, go to the folder where “cmdextension.msi” locates,cmdextension.msi locates in C:\VMShare",
